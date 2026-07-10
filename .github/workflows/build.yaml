@@ -1,0 +1,243 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "版本号 (例如: v3.1.3)"
+        required: true
+        type: string
+      prerelease:
+        description: "是否为预发布版本"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ---- Linux x64 ----
+          - os: ubuntu-24.04
+            arch: x64
+            cmake_arch: x86_64
+            artifact_suffix: linux-x64
+            binary_name: 123pan
+
+          # ---- Linux ARM64 ----
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            cmake_arch: aarch64
+            artifact_suffix: linux-arm64
+            binary_name: 123pan
+
+          # ---- Windows x64 ----
+          - os: windows-2025
+            arch: x64
+            cmake_arch: x86_64
+            artifact_suffix: windows-x64
+            binary_name: 123pan.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # ============================================================
+      # Linux: install dependencies
+      # ============================================================
+      - name: Install Linux dependencies (x64)
+        if: runner.os == 'Linux' && matrix.arch == 'x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            qt6-base-dev libqt6widgets6 \
+            qt6-tools-dev qt6-tools-dev-tools \
+            nlohmann-json3-dev libspdlog-dev \
+            libcpr-dev libssl-dev \
+            ccache zip
+
+      - name: Install Linux dependencies (ARM64)
+        if: runner.os == 'Linux' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            qt6-base-dev libqt6widgets6 \
+            qt6-tools-dev qt6-tools-dev-tools \
+            nlohmann-json3-dev libspdlog-dev \
+            libcpr-dev libssl-dev \
+            ccache zip
+
+      # ============================================================
+      # Windows: install dependencies
+      # ============================================================
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Install Qt6 via vcpkg or official installer
+          # For simplicity, use the official Qt installer
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+          choco install ninja -y
+
+      - name: Install Qt6 Windows (official)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          install-deps: 'true'
+          cache: 'true'
+
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+          cd C:/vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install nlohmann-json:x64-windows spdlog:x64-windows cpr:x64-windows openssl:x64-windows gtest:x64-windows
+
+      # ============================================================
+      # ccache (Linux only)
+      # ============================================================
+      - name: Setup ccache (Linux)
+        if: runner.os == 'Linux'
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: release-${{ matrix.artifact_suffix }}
+
+      # ============================================================
+      # Configure
+      # ============================================================
+      - name: Configure CMake (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_GUI=ON
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+            -DBUILD_TESTS=OFF `
+            -DBUILD_GUI=ON
+
+      # ============================================================
+      # Build
+      # ============================================================
+      - name: Build
+        run: cmake --build build -j$env:NUMBER_OF_PROCESSORS --config Release
+
+      # ============================================================
+      # Strip & package (Linux)
+      # ============================================================
+      - name: Strip and package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          strip build/123pan
+          cp build/123pan .
+          chmod +x 123pan
+          zip -9 "123pan-${{ matrix.artifact_suffix }}.zip" 123pan
+
+      # ============================================================
+      # Package (Windows)
+      # ============================================================
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Copy required Qt DLLs
+          windeployqt build/123pan.exe --dir deploy
+
+          # Also copy the executable
+          Copy-Item build/123pan.exe deploy/
+
+          # Create zip
+          Compress-Archive `
+            -Path deploy/* `
+            -DestinationPath "123pan-${{ matrix.artifact_suffix }}.zip" `
+            -Force
+
+      # ============================================================
+      # Upload artifact
+      # ============================================================
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: 123pan-${{ matrix.artifact_suffix }}
+          path: 123pan-${{ matrix.artifact_suffix }}.zip
+
+  # ============================================================
+  # Create GitHub Release
+  # ============================================================
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download Linux x64 artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: 123pan-linux-x64
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: 123pan-linux-arm64
+
+      - name: Download Windows x64 artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: 123pan-windows-x64
+
+      - name: Set version for manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Set version for push trigger
+        if: github.event_name == 'push'
+        run: |
+          echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Generate release notes
+        run: |
+          echo "## 123pan C++ ${{ env.VERSION }}" > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          body_path: release_notes.md
+          files: |
+            123pan-linux-x64.zip
+            123pan-linux-arm64.zip
+            123pan-windows-x64.zip
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          generate_release_notes: false

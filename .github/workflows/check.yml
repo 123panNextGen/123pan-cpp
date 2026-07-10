@@ -1,0 +1,177 @@
+name: Check & Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Build & Test (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - gcc-14
+          - clang-18
+        build_type:
+          - Debug
+          - Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            libqt6widgets6 \
+            qt6-tools-dev \
+            qt6-tools-dev-tools \
+            nlohmann-json3-dev \
+            libspdlog-dev \
+            libcpr-dev \
+            libssl-dev \
+            libgtest-dev \
+            cppcheck \
+            clang-tidy-18 \
+            ccache
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{ matrix.compiler }}-${{ matrix.build_type }}
+
+      - name: Setup compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "gcc-14" ]; then
+            echo "CC=gcc-14" >> $GITHUB_ENV
+            echo "CXX=g++-14" >> $GITHUB_ENV
+          elif [ "${{ matrix.compiler }}" = "clang-18" ]; then
+            echo "CC=clang-18" >> $GITHUB_ENV
+            echo "CXX=clang++-18" >> $GITHUB_ENV
+          fi
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_C_COMPILER=${{ env.CC }} \
+            -DCMAKE_CXX_COMPILER=${{ env.CXX }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DBUILD_TESTS=ON \
+            -DBUILD_GUI=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run cppcheck (static analysis)
+        continue-on-error: true
+        run: |
+          cppcheck --enable=all --suppress=missingIncludeSystem \
+            --suppress=unmatchedSuppression --suppress=unusedFunction \
+            --suppress=checkersReport --std=c++20 \
+            --error-exitcode=0 \
+            -I src \
+            src/ 2>&1 | tee cppcheck-report.txt
+
+      - name: Run clang-tidy (static analysis)
+        if: matrix.compiler == 'clang-18'
+        continue-on-error: true
+        run: |
+          # Run clang-tidy on all source files using compile_commands.json
+          find src -name "*.cpp" | while read f; do
+            clang-tidy-18 -p build "$f" --quiet 2>/dev/null || true
+          done
+
+      - name: Run tests
+        run: |
+          cd build && ctest --output-on-failure -j$(nproc)
+
+      - name: Upload cppcheck report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cppcheck-report-${{ matrix.compiler }}-${{ matrix.build_type }}
+          path: cppcheck-report.txt
+
+  sanitizers:
+    name: Sanitizers (Address + Undefined)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            qt6-base-dev libqt6widgets6 \
+            qt6-tools-dev qt6-tools-dev-tools \
+            nlohmann-json3-dev libspdlog-dev \
+            libcpr-dev libssl-dev \
+            libgtest-dev ccache
+
+      - name: Configure with sanitizers
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DBUILD_TESTS=ON \
+            -DBUILD_GUI=OFF
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests with sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          cd build && ctest --output-on-failure -j$(nproc)
+
+  build-only:
+    name: Build only (no GUI dependencies)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            nlohmann-json3-dev libspdlog-dev \
+            libcpr-dev libssl-dev \
+            libgtest-dev
+
+      - name: Configure (core library only)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_GUI=OFF
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        run: |
+          cd build && ctest --output-on-failure -j$(nproc)
