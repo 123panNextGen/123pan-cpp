@@ -110,12 +110,14 @@ jobs:
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.*'
+          version: '6.8.*'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
+          modules: 'qtbase qttools qtwidgets'
           install-deps: 'true'
           cache: 'true'
+          cache-key-prefix: 'qt6.8-v1'
 
       - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
@@ -161,8 +163,13 @@ jobs:
       # ============================================================
       # Build
       # ============================================================
-      - name: Build
-        run: cmake --build build -j$env:NUMBER_OF_PROCESSORS --config Release
+      - name: Build(linux)
+        if: runner.os == 'Linux'
+        run: cmake --build build -j$(nproc) --config Release
+
+      - name: Build(linux)
+        if: runner.os == 'Windows'
+        run: cmake --build build -jenv:NUMBER_OF_PROCESSORS --config Release        
 
       # ============================================================
       # Strip & package (Linux)
