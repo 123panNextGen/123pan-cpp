@@ -19,15 +19,15 @@ fs::path get_config_dir() {
 #ifdef _WIN32
     const char* appdata = std::getenv("APPDATA");
     if (appdata) {
-        return fs::path(appdata) / "123pan";
+        return fs::path(appdata) / "123pan-cpp";
     }
-    return fs::path(std::getenv("USERPROFILE") ? std::getenv("USERPROFILE") : ".") / ".config" / "123pan";
+    return fs::path(std::getenv("USERPROFILE") ? std::getenv("USERPROFILE") : ".") / ".config" / "123pan-cpp";
 #else
     const char* home = std::getenv("HOME");
     if (home) {
-        return fs::path(home) / ".config" / "123pan";
+        return fs::path(home) / ".config" / "123pan-cpp";
     }
-    return fs::path(".") / ".config" / "123pan";
+    return fs::path(".") / ".config" / "123pan-cpp";
 #endif
 }
 

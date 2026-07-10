@@ -54,6 +54,8 @@ Pan123::Pan123(bool readfile, const std::string& user_name,
     }
 }
 
+Pan123::~Pan123() = default;
+
 void Pan123::sync_to_session() {
     _auth->devicetype = devicetype;
     _auth->osversion = osversion;

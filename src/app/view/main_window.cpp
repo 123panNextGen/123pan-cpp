@@ -6,6 +6,7 @@
 #include "app/view/login_window.hpp"
 #include "app/common/api.hpp"
 #include "app/common/config.hpp"
+#include "app/common/credential.hpp"
 #include "app/common/log.hpp"
 
 #include <QHBoxLayout>

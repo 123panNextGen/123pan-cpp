@@ -25,6 +25,8 @@ public:
            const std::string& password = "",
            const std::string& authorization = "");
 
+    ~Pan123();
+
     /// 登录。
     int login();
 

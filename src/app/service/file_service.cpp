@@ -49,7 +49,7 @@ FileService::get_dir_by_id(int64_t file_id, int page, int list_len,
         // Parse FileListResponse from result.data
         FileListResponse flr;
         try {
-            flr = result.data.get<FileListResponse>();
+            flr = FileListResponse::from_json(result.data);
         } catch (...) {
             logger->error("解析文件列表数据失败: file_id={}", file_id);
             return {-1, {}, 0, false, times};
@@ -210,7 +210,7 @@ std::vector<json> FileService::recycle() {
     }
 
     try {
-        FileListResponse flr = result.data.get<FileListResponse>();
+        FileListResponse flr = FileListResponse::from_json(result.data);
         std::vector<json> items;
         for (auto& item : flr.data.info_list) {
             items.push_back(item.to_json());

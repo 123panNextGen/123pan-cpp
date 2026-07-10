@@ -1,5 +1,6 @@
 #include "app/view/main_window.hpp"
 #include "app/common/config.hpp"
+#include "app/common/const.hpp"
 #include "app/common/log.hpp"
 
 #include <QApplication>
@@ -18,7 +19,7 @@ int main(int argc, char* argv[]) {
     logger->info("日志等级: {}", log_level);
 
     logger->info("============================================================");
-    logger->info("123pan 启动");
+    logger->info("123pan-cpp 启动");
     logger->info("Version: {}", app::VERSION);
     logger->info("============================================================");
 

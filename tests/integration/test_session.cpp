@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "app/api/session.hpp"
+#include "app/common/speed_limiter.hpp"
 
 using namespace app;
 

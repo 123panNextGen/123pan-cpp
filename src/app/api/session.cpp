@@ -1,6 +1,7 @@
 #include "app/api/session.hpp"
 #include "app/common/log.hpp"
 #include "app/common/speed_limiter.hpp"
+#include "app/common/const.hpp"
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -339,7 +340,7 @@ ApiReturnModel NetSession::get_file_list(int64_t file_id, bool reverse, bool tra
 
     try {
         FileListResponse flr = FileListResponse::from_json(body);
-        return ApiReturnModel(0, 200, ApiCode::SUCCESS, "", json(flr));
+        return ApiReturnModel(0, 200, ApiCode::SUCCESS, "", flr.to_json());
     } catch (const std::exception& e) {
         logger->error("解析文件列表失败: {}", e.what());
         return ApiReturnModel(-1, -1, ApiCode::FAIL, std::format("解析响应失败: {}", e.what()));
