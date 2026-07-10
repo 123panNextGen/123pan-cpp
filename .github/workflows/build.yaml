@@ -80,6 +80,20 @@ jobs:
             libcpr-dev libssl-dev \
             ccache zip
 
+      - name: Install cpr
+        if: runner.os == 'Linux'
+        run: |
+          git clone https://github.com/libcpr/cpr.git
+          cd cpr
+
+          cmake -B build \
+              -DCPR_USE_SYSTEM_CURL=ON \
+              -DCPR_BUILD_TESTS=OFF
+
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
+          sudo ldconfig      
+
       # ============================================================
       # Windows: install dependencies
       # ============================================================

@@ -41,12 +41,24 @@ jobs:
             qt6-tools-dev-tools \
             nlohmann-json3-dev \
             libspdlog-dev \
-            libcpr-dev \
             libssl-dev \
             libgtest-dev \
             cppcheck \
             clang-tidy-18 \
             ccache
+      
+      - name: Install cpr
+        run: |
+          git clone https://github.com/libcpr/cpr.git
+          cd cpr
+
+          cmake -B build \
+              -DCPR_USE_SYSTEM_CURL=ON \
+              -DCPR_BUILD_TESTS=OFF
+
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
+          sudo ldconfig
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1
