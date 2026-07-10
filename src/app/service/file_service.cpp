@@ -241,11 +241,11 @@ std::string FileService::share(const std::vector<int64_t>& file_id_list,
         {"event", "shareCreate"},
     };
 
-    cpr::Response resp = _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/a/api/share/create"},
-        cpr::Body{data.dump()},
-        cpr::Timeout{10000}
-    );
+    auto& http = _session->http_session();
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/a/api/share/create"});
+    http.SetBody(cpr::Body{data.dump()});
+    http.SetTimeout(cpr::Timeout{10000});
+    cpr::Response resp = http.Post();
 
     try {
         json resp_json = json::parse(resp.text);

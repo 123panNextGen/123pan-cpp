@@ -226,11 +226,10 @@ ApiReturnModel NetSession::login(const std::string& user_name, const std::string
 
     cpr::Response resp;
     try {
-        resp = _http.Post(
-            cpr::Url{"https://www.123pan.cn/b/api/user/sign_in"},
-            cpr::Body{json{{"type", 1}, {"passport", user_name}, {"password", password}}.dump()},
-            cpr::Timeout{5000}
-        );
+        _http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/user/sign_in"});
+        _http.SetBody(cpr::Body{json{{"type", 1}, {"passport", user_name}, {"password", password}}.dump()});
+        _http.SetTimeout(cpr::Timeout{5000});
+        resp = _http.Post();
     } catch (const std::exception& e) {
         auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         logger->error("登录请求失败 ({:.2f}s): {}", elapsed, e.what());
@@ -301,11 +300,10 @@ ApiReturnModel NetSession::get_file_list(int64_t file_id, bool reverse, bool tra
 
     cpr::Response resp;
     try {
-        resp = _http.Get(
-            cpr::Url{"https://www.123pan.cn/api/file/list/new"},
-            params,
-            cpr::Timeout{30000}
-        );
+        _http.SetUrl(cpr::Url{"https://www.123pan.cn/api/file/list/new"});
+        _http.SetParameters(params);
+        _http.SetTimeout(cpr::Timeout{30000});
+        resp = _http.Get();
     } catch (const std::exception& e) {
         auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         logger->error("获取文件列表失败 ({:.2f}s): file_id={}, page={}, err={}",
@@ -374,11 +372,10 @@ ApiReturnModel NetSession::create_dir(const std::string& dir_name, int64_t paren
 
     cpr::Response resp;
     try {
-        resp = _http.Post(
-            cpr::Url{"https://www.123pan.cn/a/api/file/upload_request"},
-            cpr::Body{data.dump()},
-            cpr::Timeout{10000}
-        );
+        _http.SetUrl(cpr::Url{"https://www.123pan.cn/a/api/file/upload_request"});
+        _http.SetBody(cpr::Body{data.dump()});
+        _http.SetTimeout(cpr::Timeout{10000});
+        resp = _http.Post();
     } catch (const std::exception& e) {
         logger->error("创建文件夹失败: name={}, parent={}, err={}", dir_name, parent_file_id, e.what());
         return ApiReturnModel(-1, -1, ApiCode::FAIL, e.what());
@@ -420,11 +417,10 @@ ApiReturnModel NetSession::trash_file(const json& file_info, bool operation) {
 
     cpr::Response resp;
     try {
-        resp = _http.Post(
-            cpr::Url{"https://www.123pan.cn/a/api/file/trash"},
-            cpr::Body{data.dump()},
-            cpr::Timeout{10000}
-        );
+        _http.SetUrl(cpr::Url{"https://www.123pan.cn/a/api/file/trash"});
+        _http.SetBody(cpr::Body{data.dump()});
+        _http.SetTimeout(cpr::Timeout{10000});
+        resp = _http.Post();
     } catch (const std::exception& e) {
         logger->error("{}文件失败: name={}, err={}", op_name, file_name, e.what());
         return ApiReturnModel(-1, -1, ApiCode::FAIL, e.what());
@@ -487,11 +483,10 @@ ApiReturnModel NetSession::get_file_link(const json& file_info) {
 
     cpr::Response resp;
     try {
-        resp = _http.Post(
-            cpr::Url{url},
-            cpr::Body{request_data.dump()},
-            cpr::Timeout{10000}
-        );
+        _http.SetUrl(cpr::Url{url});
+        _http.SetBody(cpr::Body{request_data.dump()});
+        _http.SetTimeout(cpr::Timeout{10000});
+        resp = _http.Post();
     } catch (const std::exception& e) {
         logger->error("获取下载链接失败: name={}, err={}", file_name, e.what());
         return ApiReturnModel(-1, -1, ApiCode::FAIL, e.what());
@@ -695,11 +690,10 @@ ApiReturnModel NetSession::rename_file(int64_t file_id, const std::string& new_n
 
     cpr::Response resp;
     try {
-        resp = _http.Post(
-            cpr::Url{"https://www.123pan.cn/a/api/file/rename"},
-            cpr::Body{data.dump()},
-            cpr::Timeout{10000}
-        );
+        _http.SetUrl(cpr::Url{"https://www.123pan.cn/a/api/file/rename"});
+        _http.SetBody(cpr::Body{data.dump()});
+        _http.SetTimeout(cpr::Timeout{10000});
+        resp = _http.Post();
     } catch (const std::exception& e) {
         logger->error("重命名失败: file_id={}, new_name={}, err={}", file_id, new_name, e.what());
         return ApiReturnModel(-1, -1, ApiCode::FAIL, e.what());

@@ -107,11 +107,11 @@ std::string UploadService::up_load(const std::string& file_path,
         {"duplicate", 0},
     };
 
-    cpr::Response up_res = _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/b/api/file/upload_request"},
-        cpr::Body{list_up_request.dump()},
-        cpr::Timeout{cpr::Timeout{30000}}
-    );
+    auto& http = _session->http_session();
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/upload_request"});
+    http.SetBody(cpr::Body{list_up_request.dump()});
+    http.SetTimeout(cpr::Timeout{30000});
+    cpr::Response up_res = http.Post();
 
     auto up_res_json = json::parse(up_res.text);
     int res_code_up = up_res_json.value("code", -1);
@@ -119,11 +119,8 @@ std::string UploadService::up_load(const std::string& file_path,
     // Handle duplicate file (code 5060)
     if (res_code_up == 5060) {
         list_up_request["duplicate"] = dup_choice;
-        up_res = _session->http_session().Post(
-            cpr::Url{"https://www.123pan.cn/b/api/file/upload_request"},
-            cpr::Body{list_up_request.dump()},
-            cpr::Timeout{cpr::Timeout{30000}}
-        );
+        http.SetBody(cpr::Body{list_up_request.dump()});
+        up_res = http.Post();
         up_res_json = json::parse(up_res.text);
         res_code_up = up_res_json.value("code", -1);
     }
@@ -158,11 +155,10 @@ std::string UploadService::up_load(const std::string& file_path,
         {"storageNode", storage_node},
     };
 
-    cpr::Response start_res = _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/b/api/file/s3_list_upload_parts"},
-        cpr::Body{start_data.dump()},
-        cpr::Timeout{cpr::Timeout{30000}}
-    );
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/s3_list_upload_parts"});
+    http.SetBody(cpr::Body{start_data.dump()});
+    http.SetTimeout(cpr::Timeout{30000});
+    cpr::Response start_res = http.Post();
 
     auto start_res_json = json::parse(start_res.text);
     res_code_up = start_res_json.value("code", -1);
@@ -201,11 +197,10 @@ std::string UploadService::up_load(const std::string& file_path,
             {"StorageNode", storage_node},
         };
 
-        cpr::Response get_link_res = _session->http_session().Post(
-            cpr::Url{"https://www.123pan.cn/b/api/file/s3_repare_upload_parts_batch"},
-            cpr::Body{get_link_data.dump()},
-            cpr::Timeout{cpr::Timeout{30000}}
-        );
+        http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/s3_repare_upload_parts_batch"});
+        http.SetBody(cpr::Body{get_link_data.dump()});
+        http.SetTimeout(cpr::Timeout{30000});
+        cpr::Response get_link_res = http.Post();
 
         auto get_link_res_json = json::parse(get_link_res.text);
         res_code_up = get_link_res_json.value("code", -1);
@@ -242,17 +237,15 @@ std::string UploadService::up_load(const std::string& file_path,
         {"storageNode", storage_node},
     };
 
-    _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/b/api/file/s3_list_upload_parts"},
-        cpr::Body{uploaded_comp_data.dump()},
-        cpr::Timeout{cpr::Timeout{30000}}
-    );
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/s3_list_upload_parts"});
+    http.SetBody(cpr::Body{uploaded_comp_data.dump()});
+    http.SetTimeout(cpr::Timeout{30000});
+    http.Post();
 
-    _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/b/api/file/s3_complete_multipart_upload"},
-        cpr::Body{uploaded_comp_data.dump()},
-        cpr::Timeout{cpr::Timeout{30000}}
-    );
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/s3_complete_multipart_upload"});
+    http.SetBody(cpr::Body{uploaded_comp_data.dump()});
+    http.SetTimeout(cpr::Timeout{30000});
+    http.Post();
 
     // Wait for large files
     if (fsize > 64 * 1024 * 1024) {
@@ -261,11 +254,10 @@ std::string UploadService::up_load(const std::string& file_path,
 
     // Close upload session
     json close_data = {{"fileId", up_file_id}};
-    cpr::Response close_res = _session->http_session().Post(
-        cpr::Url{"https://www.123pan.cn/b/api/file/upload_complete"},
-        cpr::Body{close_data.dump()},
-        cpr::Timeout{cpr::Timeout{30000}}
-    );
+    http.SetUrl(cpr::Url{"https://www.123pan.cn/b/api/file/upload_complete"});
+    http.SetBody(cpr::Body{close_data.dump()});
+    http.SetTimeout(cpr::Timeout{30000});
+    cpr::Response close_res = http.Post();
 
     auto close_res_json = json::parse(close_res.text);
     res_code_up = close_res_json.value("code", -1);

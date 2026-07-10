@@ -128,6 +128,23 @@ FileListData FileListData::from_json(const json& j) {
 }
 
 // ============================================================
+// FileListData
+// ============================================================
+json FileListData::to_json() const {
+    json info_list_arr = json::array();
+    for (const auto& item : info_list) {
+        info_list_arr.push_back(item.to_json());
+    }
+    return {
+        {"Next", next},
+        {"Len", len},
+        {"Total", total},
+        {"IsFirst", is_first},
+        {"InfoList", info_list_arr},
+    };
+}
+
+// ============================================================
 // FileListResponse
 // ============================================================
 FileListResponse FileListResponse::from_json(const json& j) {
@@ -147,6 +164,14 @@ FileListResponse FileListResponse::from_json(const json& j) {
     }
 
     return flr;
+}
+
+json FileListResponse::to_json() const {
+    return {
+        {"code", code},
+        {"message", message},
+        {"data", data.to_json()},
+    };
 }
 
 }  // namespace app

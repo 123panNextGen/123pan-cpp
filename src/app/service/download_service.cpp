@@ -53,10 +53,10 @@ void DownloadService::download_from_url(const std::string& url,
     std::string current_url = url;
 
     while (redirect_count < 3) {
-        cpr::Response resp = _session->http_session().Get(
-            cpr::Url{current_url},
-            cpr::Timeout{10000}
-        );
+        auto& http = _session->http_session();
+        http.SetUrl(cpr::Url{current_url});
+        http.SetTimeout(cpr::Timeout{10000});
+        cpr::Response resp = http.Get();
 
         std::string content_type;
         if (resp.header.find("Content-Type") != resp.header.end()) {

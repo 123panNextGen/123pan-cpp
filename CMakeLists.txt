@@ -116,6 +116,8 @@ if(BUILD_GUI)
         ${CMAKE_SOURCE_DIR}/src
     )
 
+    target_compile_definitions(123pan PRIVATE VERSION="${PROJECT_VERSION}")
+
     target_link_libraries(123pan PRIVATE
         Qt6::Core
         Qt6::Gui
@@ -162,6 +164,8 @@ if(BUILD_TESTS)
     target_include_directories(123pan_core PRIVATE
         ${CMAKE_SOURCE_DIR}/src
     )
+
+    target_compile_definitions(123pan_core PUBLIC VERSION="${PROJECT_VERSION}")
 
     target_link_libraries(123pan_core PUBLIC
         nlohmann_json::nlohmann_json

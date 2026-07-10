@@ -95,6 +95,7 @@ struct FileListData {
     std::vector<FileItemModel> info_list;
 
     static FileListData from_json(const json& j);
+    json to_json() const;
 };
 
 // ============================================================
@@ -106,6 +107,7 @@ struct FileListResponse {
     FileListData data;
 
     static FileListResponse from_json(const json& j);
+    json to_json() const;
 };
 
 }  // namespace app
