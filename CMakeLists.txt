@@ -189,5 +189,7 @@ endif()
 # ============================================================
 # Install rules
 # ============================================================
-install(TARGETS 123pan DESTINATION bin)
-install(DIRECTORY src/resource/qss DESTINATION share/123pan)
+if(BUILD_GUI)
+    install(TARGETS 123pan DESTINATION bin)
+    install(DIRECTORY src/resource/qss DESTINATION share/123pan)
+endif()

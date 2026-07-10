@@ -168,6 +168,7 @@ static std::vector<uint8_t> aes_gcm_decrypt(
     int total_len = 0;
     EVP_DecryptUpdate(ctx, plaintext.data(), &out_len, ciphertext.data(),
                       static_cast<int>(ciphertext.size()));
+    total_len = out_len;
 
     // Set expected tag
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16,

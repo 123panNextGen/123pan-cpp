@@ -1100,6 +1100,7 @@ bool NetSession::download_file_multithread(
 // Utility functions
 // ============================================================
 std::string format_file_size(int64_t size) {
+    if (size == 0) return "0 B";
     constexpr const char* units[] = {"B", "KB", "MB", "GB", "TB"};
     double s = static_cast<double>(size);
 
