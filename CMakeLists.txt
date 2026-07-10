@@ -7,9 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Enable Qt MOC, UIC, RCC automatically
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
+if(BUILD_GUI)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
+endif()
 
 # Build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -28,7 +30,9 @@ option(BUILD_GUI "Build Qt6 GUI application" ON)
 # ============================================================
 # Find packages
 # ============================================================
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+if(BUILD_GUI)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+endif()
 
 # JSON library
 find_package(nlohmann_json REQUIRED)

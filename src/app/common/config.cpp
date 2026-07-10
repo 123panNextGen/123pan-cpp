@@ -148,11 +148,14 @@ json ConfigManager::load_config() {
         if (!config.contains("currentAccount") || config["currentAccount"].get<std::string>().empty()) {
             if (config.contains("userName") && config["userName"].is_string()) {
                 config["currentAccount"] = config["userName"].get<std::string>();
+                migrated = true;
             } else if (!config["accounts"].empty()) {
                 config["currentAccount"] = config["accounts"].begin().key();
+                migrated = true;
             }
-            migrated = true;
-            logger->info("配置迁移: 补全 currentAccount={}", config["currentAccount"].get<std::string>());
+            if (migrated) {
+                logger->info("配置迁移: 补全 currentAccount={}", config["currentAccount"].get<std::string>());
+            }
         }
 
         // 删除冗余顶层字段
@@ -203,6 +206,7 @@ bool ConfigManager::save_config(const json& config) {
             return false;
         }
         f << config.dump(2, ' ', false, json::error_handler_t::replace);
+        f.close();
         logger->debug("配置已保存到 {}", config_file.string());
         return true;
     } catch (const std::exception& e) {
