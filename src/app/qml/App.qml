@@ -15,16 +15,15 @@ FluWindow {
     appBar: FluAppBar {
         height: 30
         showDark: true
-        darkClickListener: function(button) {
-            FluTheme.darkMode = button.toggle
-        }
     }
 
     FluNavigationView {
         id: navView
         anchors.fill: parent
         topPadding: 0
+        displayMode: FluNavigationViewType.Open
         pageMode: FluNavigationViewType.Stack
+        cellWidth: 200
         items: FluObject {
             FluPaneItem {
                 title: "文件"
@@ -70,6 +69,8 @@ FluWindow {
         FluTheme.nativeText = true
         FluTheme.animationEnabled = true
         backend.init()
+        // Select the first navigation item to show initial page
+        navView.setCurrentIndex(0)
         if (!backend.isLoggedIn) {
             loginLoader.source = "qrc:/qml/LoginPage.qml"
         }
