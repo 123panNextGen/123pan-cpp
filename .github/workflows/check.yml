@@ -9,10 +9,16 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # ── Full build + test with GCC 14 / Clang 18 (matrix) ────────────
   check:
-    name: Build & Test (${{ matrix.compiler }})
-    runs-on: ubuntu-latest
+    name: Build & Test (${{ matrix.compiler }}, ${{ matrix.build_type }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -30,6 +36,7 @@ jobs:
         with:
           submodules: 'recursive'
 
+      # ── system packages ──────────────────────────────────────────
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -37,38 +44,41 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            pkg-config \
+            ccache \
+            gcc-14 \
+            g++-14 \
+            clang-18 \
+            clang-tools-18 \
+            clang-tidy-18 \
+            clang-format-18 \
+            cppcheck \
             qt6-base-dev \
+            qt6-base-private-dev \
             qt6-declarative-dev \
             qt6-tools-dev \
             qt6-tools-dev-tools \
+            qt6-shadertools-dev \
+            libgl1-mesa-dev \
+            libegl-dev \
+            libxkbcommon-dev \
+            libfontconfig1-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            zlib1g-dev \
             nlohmann-json3-dev \
             libspdlog-dev \
             libssl-dev \
-            libgtest-dev \
             libcurl4-openssl-dev \
-            cppcheck \
-            clang-tidy-18 \
-            libx11-dev \
-            ccache
-      
-      - name: Install cpr
-        run: |
-          git clone https://github.com/libcpr/cpr.git
-          cd cpr
+            libgtest-dev
 
-          cmake -B build \
-              -DCPR_USE_SYSTEM_CURL=ON \
-              -DCPR_BUILD_TESTS=OFF
-
-          cmake --build build -j$(nproc)
-          sudo cmake --install build
-          sudo ldconfig
-
+      # ── ccache ───────────────────────────────────────────────────
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1
         with:
-          key: ${{ matrix.compiler }}-${{ matrix.build_type }}
+          key: ${{ matrix.compiler }}-${{ matrix.build_type }}-check
 
+      # ── compiler selection ───────────────────────────────────────
       - name: Setup compiler
         run: |
           if [ "${{ matrix.compiler }}" = "gcc-14" ]; then
@@ -79,6 +89,28 @@ jobs:
             echo "CXX=clang++-18" >> $GITHUB_ENV
           fi
 
+      # ── CPR (cached) ─────────────────────────────────────────────
+      - name: Cache CPR
+        id: cache-cpr
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/cpr-prefix
+          key: cpr-linux-x64-v1
+
+      - name: Build & install cpr
+        if: steps.cache-cpr.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/libcpr/cpr.git --depth 1
+          cd cpr
+          cmake -B build -G Ninja \
+            -DCPR_USE_SYSTEM_CURL=ON \
+            -DCPR_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/cpr-prefix
+          cmake --build build -j$(nproc)
+          cmake --install build
+
+      # ── configure ────────────────────────────────────────────────
       - name: Configure CMake
         run: |
           cmake -B build -G Ninja \
@@ -87,12 +119,16 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{ env.CXX }} \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/cpr-prefix \
             -DBUILD_TESTS=ON \
             -DBUILD_GUI=ON
 
+      # ── build ────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build -j$(nproc)
 
+      # ── static analysis ──────────────────────────────────────────
       - name: Run cppcheck (static analysis)
         continue-on-error: true
         run: |
@@ -107,15 +143,14 @@ jobs:
         if: matrix.compiler == 'clang-18'
         continue-on-error: true
         run: |
-          # Run clang-tidy on all source files using compile_commands.json
-          find src -name "*.cpp" | while read f; do
-            clang-tidy-18 -p build "$f" --quiet 2>/dev/null || true
-          done
+          find src -name '*.cpp' -print0 | xargs -0 -P$(nproc) -I{} \
+            clang-tidy-18 -p build {} --quiet 2>/dev/null || true
 
+      # ── test ─────────────────────────────────────────────────────
       - name: Run tests
-        run: |
-          cd build && ctest --output-on-failure -j$(nproc)
+        run: cd build && ctest --output-on-failure -j$(nproc)
 
+      # ── upload report ────────────────────────────────────────────
       - name: Upload cppcheck report
         if: always()
         uses: actions/upload-artifact@v7
@@ -123,9 +158,11 @@ jobs:
           name: cppcheck-report-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: cppcheck-report.txt
 
+  # ── Sanitizer build ───────────────────────────────────────────────
   sanitizers:
     name: Sanitizers (Address + Undefined)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -133,52 +170,70 @@ jobs:
         with:
           submodules: 'recursive'
 
+      # ── system packages (minimal – no GUI) ───────────────────────
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential cmake ninja-build \
-            qt6-base-dev libqt6widgets6 \
-            qt6-tools-dev qt6-tools-dev-tools \
-            nlohmann-json3-dev libspdlog-dev \
-            libssl-dev libcurl4-openssl-dev \
-            libgtest-dev ccache libx11-dev
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            nlohmann-json3-dev \
+            libspdlog-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libgtest-dev
 
-      - name: Install cpr
+      # ── CPR (cached) ─────────────────────────────────────────────
+      - name: Cache CPR
+        id: cache-cpr
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/cpr-prefix
+          key: cpr-linux-x64-v1
+
+      - name: Build & install cpr
+        if: steps.cache-cpr.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/libcpr/cpr.git
+          git clone https://github.com/libcpr/cpr.git --depth 1
           cd cpr
-
-          cmake -B build \
-              -DCPR_USE_SYSTEM_CURL=ON \
-              -DCPR_BUILD_TESTS=OFF
-
+          cmake -B build -G Ninja \
+            -DCPR_USE_SYSTEM_CURL=ON \
+            -DCPR_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/cpr-prefix
           cmake --build build -j$(nproc)
-          sudo cmake --install build
-          sudo ldconfig    
+          cmake --install build
 
+      # ── configure ────────────────────────────────────────────────
       - name: Configure with sanitizers
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/cpr-prefix \
             -DBUILD_TESTS=ON \
             -DBUILD_GUI=OFF
 
+      # ── build ────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build -j$(nproc)
 
+      # ── test ─────────────────────────────────────────────────────
       - name: Run tests with sanitizers
         env:
           ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1
           UBSAN_OPTIONS: print_stacktrace=1
-        run: |
-          cd build && ctest --output-on-failure -j$(nproc)
+        run: cd build && ctest --output-on-failure -j$(nproc)
 
+  # ── Core library only (no GUI) ────────────────────────────────────
   build-only:
     name: Build only (no GUI dependencies)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -186,38 +241,56 @@ jobs:
         with:
           submodules: 'recursive'
 
+      # ── system packages (minimal – no GUI) ───────────────────────
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential cmake ninja-build \
-            nlohmann-json3-dev libspdlog-dev \
-            libssl-dev libcurl4-openssl-dev\
-            libgtest-dev libx11-dev
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            nlohmann-json3-dev \
+            libspdlog-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libgtest-dev
 
-      - name: Install cpr
+      # ── CPR (cached) ─────────────────────────────────────────────
+      - name: Cache CPR
+        id: cache-cpr
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/cpr-prefix
+          key: cpr-linux-x64-v1
+
+      - name: Build & install cpr
+        if: steps.cache-cpr.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/libcpr/cpr.git
+          git clone https://github.com/libcpr/cpr.git --depth 1
           cd cpr
-
-          cmake -B build \
-              -DCPR_USE_SYSTEM_CURL=ON \
-              -DCPR_BUILD_TESTS=OFF
-
+          cmake -B build -G Ninja \
+            -DCPR_USE_SYSTEM_CURL=ON \
+            -DCPR_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/cpr-prefix
           cmake --build build -j$(nproc)
-          sudo cmake --install build
-          sudo ldconfig            
+          cmake --install build
 
+      # ── configure ────────────────────────────────────────────────
       - name: Configure (core library only)
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/cpr-prefix \
             -DBUILD_TESTS=ON \
             -DBUILD_GUI=OFF
 
+      # ── build ────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build -j$(nproc)
 
+      # ── test ─────────────────────────────────────────────────────
       - name: Run tests
-        run: |
-          cd build && ctest --output-on-failure -j$(nproc)
+        run: cd build && ctest --output-on-failure -j$(nproc)

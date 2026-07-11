@@ -20,10 +20,16 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # ── Matrix build for all platforms ────────────────────────────────
   build:
     name: Build (${{ matrix.artifact }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
 
     strategy:
       fail-fast: false
@@ -56,62 +62,77 @@ jobs:
         with:
           submodules: 'recursive'
 
-      ############################################################
-      ## Linux
-      ############################################################
+      # ==========================================================
+      #  Linux
+      # ==========================================================
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             build-essential \
-            ninja-build \
             cmake \
+            ninja-build \
+            pkg-config \
             ccache \
             zip \
+            upx \
             qt6-base-dev \
+            qt6-base-private-dev \
+            qt6-declarative-dev \
             qt6-tools-dev \
             qt6-tools-dev-tools \
-            libqt6widgets6 \
-            libssl-dev \
-            libcurl4-openssl-dev \
+            qt6-shadertools-dev \
+            libgl1-mesa-dev \
+            libegl-dev \
+            libxkbcommon-dev \
+            libfontconfig1-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            zlib1g-dev \
             nlohmann-json3-dev \
             libspdlog-dev \
+            libssl-dev \
+            libcurl4-openssl-dev
 
-            libx11-dev \
-            upx
-
-      ############################################################
-      ## Build CPR
-      ############################################################
-
-      - name: Build cpr (Linux)
+      - name: Setup ccache (Linux)
         if: runner.os == 'Linux'
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{ matrix.artifact }}-release
+
+      # ── CPR (Linux) ────────────────────────────────────────────
+      - name: Cache CPR (Linux)
+        if: runner.os == 'Linux'
+        id: cache-cpr
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/cpr-prefix
+          key: cpr-${{ matrix.artifact }}-v1
+
+      - name: Build & install cpr (Linux)
+        if: runner.os == 'Linux' && steps.cache-cpr.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/libcpr/cpr.git
+          git clone https://github.com/libcpr/cpr.git --depth 1
           cd cpr
-
-          cmake -B build \
+          cmake -B build -G Ninja \
             -DCPR_USE_SYSTEM_CURL=ON \
-            -DCPR_BUILD_TESTS=OFF
-
+            -DCPR_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/cpr-prefix
           cmake --build build -j$(nproc)
+          cmake --install build
 
-          sudo cmake --install build
-
-          sudo ldconfig
-
-      ############################################################
-      ## Windows
-      ############################################################
+      # ==========================================================
+      #  Windows
+      # ==========================================================
 
       - name: Install tools (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install ninja -y
+          choco install ninja upx -y
 
       - name: Setup MSVC (Windows)
         if: runner.os == 'Windows'
@@ -127,46 +148,44 @@ jobs:
           arch: ${{ matrix.qt_arch }}
           cache: true
 
-      - name: Setup vcpkg (Windows)
+      - name: Cache vcpkg (Windows)
         if: runner.os == 'Windows'
+        id: cache-vcpkg
+        uses: actions/cache@v4
+        with:
+          path: C:\vcpkg
+          key: vcpkg-${{ matrix.vcpkg_triplet }}-v1
+
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows' && steps.cache-vcpkg.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           git clone https://github.com/microsoft/vcpkg C:\vcpkg
-
           C:\vcpkg\bootstrap-vcpkg.bat
 
+      - name: Install vcpkg packages (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
           C:\vcpkg\vcpkg install `
             cpr:${{ matrix.vcpkg_triplet }} `
             openssl:${{ matrix.vcpkg_triplet }} `
             spdlog:${{ matrix.vcpkg_triplet }} `
             nlohmann-json:${{ matrix.vcpkg_triplet }}
 
-      - name: Install UPX (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install upx -y            
-
-      ############################################################
-      ## Cache
-      ############################################################
-
-      - name: Setup ccache (Linux)
-        if: runner.os == 'Linux'
-        uses: hendrikmuhs/ccache-action@v1
-
-      ############################################################
-      ## Configure
-      ############################################################
+      # ==========================================================
+      #  Configure
+      # ==========================================================
 
       - name: Configure (Linux)
         if: runner.os == 'Linux'
         run: |
-          cmake -B build \
-            -G Ninja \
+          cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/cpr-prefix \
             -DBUILD_GUI=ON \
             -DBUILD_TESTS=OFF
 
@@ -179,78 +198,61 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_COMPILER=cl `
             -DCMAKE_CXX_COMPILER=cl `
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
             -DCMAKE_PREFIX_PATH="$env:Qt6_ROOT_DIR" `
             -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
             -DBUILD_GUI=ON `
             -DBUILD_TESTS=OFF
 
-      ############################################################
-      ## Build
-      ############################################################
+      # ==========================================================
+      #  Build
+      # ==========================================================
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
-        run: |
-          cmake --build build -j$(nproc)
+        run: cmake --build build -j$(nproc)
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          cmake --build build --config Release
+        run: cmake --build build --config Release
 
-      ############################################################
-      ## UPX Compression
-      ############################################################
+      # ==========================================================
+      #  UPX Compression
+      # ==========================================================
 
       - name: Compress with UPX (Linux)
         if: runner.os == 'Linux'
-        run: |
-          upx --best --lzma build/123pan
-
+        run: upx --best --lzma build/123pan
 
       - name: Compress with UPX (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          upx --best --lzma build\123pan.exe
+        run: upx --best --lzma build\123pan.exe
 
-      ############################################################
-      ## Package Linux
-      ############################################################
+      # ==========================================================
+      #  Package
+      # ==========================================================
 
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
           cp build/123pan .
-
           chmod +x 123pan
-
           zip -9 "123pan-${{ matrix.artifact }}.zip" 123pan
-
-      ############################################################
-      ## Package Windows
-      ############################################################
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item deploy -ItemType Directory -Force | Out-Null
-
           Copy-Item build\123pan.exe deploy\
+          & "$env:Qt6_DIR\bin\windeployqt.exe" deploy\123pan.exe --dir deploy
+          Compress-Archive deploy\* "123pan-${{ matrix.artifact }}.zip"
 
-          & "$env:Qt6_DIR\bin\windeployqt.exe" `
-            deploy\123pan.exe `
-            --dir deploy
-
-          Compress-Archive `
-            deploy\* `
-            "123pan-${{ matrix.artifact }}.zip"
-
-      ############################################################
-      ## Upload
-      ############################################################
+      # ==========================================================
+      #  Upload Artifact
+      # ==========================================================
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
@@ -258,15 +260,12 @@ jobs:
           name: 123pan-${{ matrix.artifact }}
           path: 123pan-${{ matrix.artifact }}.zip
 
-  ##############################################################
-  ## Release
-  ##############################################################
-
+  # ── Release ───────────────────────────────────────────────────────
   release:
     name: Release
     needs: build
-
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
@@ -293,13 +292,11 @@ jobs:
 
       - name: Set Version (tag)
         if: github.event_name == 'push'
-        run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
       - name: Set Version (manual)
         if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
       - name: Release Notes
         run: |
