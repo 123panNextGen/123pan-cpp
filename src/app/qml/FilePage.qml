@@ -3,86 +3,79 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import FluentUI
 
-FluScrollablePage {
+Item {
     id: page
-    title: "文件管理"
-    launchMode: FluPageType.SingleTask
     property var selId: 0
     property var selName: ""
     property var selType: 0
+    property var fileListModel: []
+
+    function refreshModel() { fileListModel = JSON.parse(backend.fileTableJson()) }
+    Component.onCompleted: refreshModel()
+    Connections { target: backend; function onFileListChanged() { refreshModel() } }
 
     ColumnLayout {
-        spacing: 6
-        Layout.fillWidth: true
+        anchors.fill: parent
+        anchors.margins: 8
+        spacing: 4
 
         // Toolbar
         RowLayout {
-            spacing: 6
-            FluButton { text: "← 返回"; enabled: backend.fileCurrentDirId !== 0; onClicked: backend.fileGoParentDir() }
+            spacing: 4
+            FluButton { text: "← 返回"; enabled: backend.fileCurrentDirId!==0; onClicked: backend.fileGoParentDir() }
             FluButton { text: "新建文件夹"; onClicked: dlgNewFolder.open() }
             FluButton { text: "上传"; onClicked: backend.fileUploadItem() }
             FluButton { text: "下载"; enabled: selId>0; onClicked: backend.fileDownloadItem(selId) }
             FluButton { text: "删除"; enabled: selId>0; onClicked: dlgDelete.open() }
             FluButton { text: "分享"; enabled: selId>0; onClicked: backend.fileShareItem(selId) }
             FluButton { text: "复制链接"; enabled: selId>0; onClicked: backend.fileCopyLink(selId) }
-            FluButton { text: "🔃 刷新"; onClicked: backend.fileRefresh() }
+            FluButton { text: "🔄"; onClicked: backend.fileRefresh() }
         }
 
-        // Breadcrumb
+        // Storage bar
         RowLayout {
-            FluTextButton { text: "📁 根目录"; onClicked: backend.fileRefresh() }
-            Repeater {
-                model: backend.fileBreadcrumb
-                delegate: Row {
-                    FluText { text: " > "; font: FluTextStyle.Caption }
-                    FluTextButton { text: "📁"; onClicked: backend.fileNavigateByBreadcrumb(index+1) }
-                }
+            FluText { text: "☁ 已用 " + backend.storageUsed + " / 共 " + backend.storageTotal + "  文件: " + fileListModel.length; font: FluTextStyle.Caption }
+            FluProgressBar { Layout.fillWidth: true; Layout.preferredHeight: 6; value: backend.storagePercent }
+        }
+
+        // File list header
+        Rectangle {
+            Layout.fillWidth: true; height: 30; color: FluTheme.dark?"#3a3a3a":"#e8e8e8"; radius: 4
+            RowLayout {
+                anchors { fill:parent; margins:6 }
+                FluText { text: "名称"; font: FluTextStyle.BodyStrong; Layout.fillWidth: true }
+                FluText { text: "类型"; font: FluTextStyle.BodyStrong; Layout.preferredWidth: 100 }
+                FluText { text: "大小"; font: FluTextStyle.BodyStrong; Layout.preferredWidth: 90 }
             }
         }
 
-        // Content
-        RowLayout {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 8
+        // File list — fills ALL remaining space
+        ListView {
+            id: fileList
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            model: fileListModel
+            ScrollBar.vertical: FluScrollBar {}
 
-            ColumnLayout {
-                Layout.preferredWidth: 220; Layout.fillHeight: true; spacing: 4
-                FluTreeView {
-                    Layout.fillWidth: true; Layout.fillHeight: true
-                    columnSource: [{title:"文件夹",dataIndex:"name",width:200}]
-                    dataSource: backend.fileTreeDataSource
+            delegate: Rectangle {
+                width: fileList.width; height: 34
+                color: index%2===0 ? (FluTheme.dark?"#282828":"#f5f5f5") : "transparent"
+                RowLayout {
+                    anchors { fill:parent; margins:6 }
+                    FluText { text: modelData.name||""; Layout.fillWidth: true; elide: Text.ElideRight }
+                    FluText { text: modelData.typeName||""; Layout.preferredWidth: 100; font: FluTextStyle.Caption }
+                    FluText { text: modelData.size||""; Layout.preferredWidth: 90; font: FluTextStyle.Caption }
                 }
-                FluGroupBox {
-                    title: "云盘空间"; Layout.fillWidth: true
-                    ColumnLayout {
-                        FluText { text: backend.storageUsed + " / " + backend.storageTotal; font: FluTextStyle.Caption }
-                        FluProgressBar { Layout.fillWidth: true; value: backend.storagePercent }
-                    }
-                }
-            }
-
-            FluTableView {
-                id: fileTable
-                Layout.fillWidth: true; Layout.fillHeight: true
-                columnSource: backend.fileTableColumns
-                dataSource: backend.fileTableDataSource
                 MouseArea {
-                    anchors.fill: parent; acceptedButtons: Qt.RightButton
+                    anchors.fill: parent; acceptedButtons: Qt.LeftButton|Qt.RightButton
                     onClicked: function(mouse) {
-                        var row = fileTable.view.rowAt(mouse.y)
-                        if (row>=0) {
-                            var d = backend.fileTableDataSource[row]; selId = d.fileId; selName = d.name; selType = d.type
-                            ctxMenu.popup()
-                        }
+                        selId=modelData.fileId; selName=modelData.name; selType=modelData.type
+                        if (mouse.button===Qt.RightButton) ctxMenu.popup()
                     }
-                }
-                TapHandler {
-                    onDoubleTapped: function(pt) {
-                        var row = fileTable.view.rowAt(pt.position.y)
-                        if (row>=0) {
-                            var d = backend.fileTableDataSource[row]
-                            if (d.type===1) backend.fileNavigateToDir(d.fileId)
-                            else backend.fileDownloadItem(d.fileId)
-                        }
+                    onDoubleClicked: {
+                        if (modelData.type===1) backend.fileNavigateToDir(modelData.fileId)
+                        else backend.fileDownloadItem(modelData.fileId)
                     }
                 }
             }

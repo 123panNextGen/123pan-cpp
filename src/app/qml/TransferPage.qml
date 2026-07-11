@@ -12,20 +12,38 @@ FluScrollablePage {
         FluPivotItem {
             title: "上传"
             contentItem: Component {
-                FluTableView {
-                    anchors { fill: parent; margins: 8 }
-                    columnSource: backend.transferColumns
-                    dataSource: backend.uploadDataSource
+                ListView {
+                    anchors.fill: parent; clip: true
+                    model: backend.uploadDataSource
+                    delegate: Rectangle {
+                        width: parent.width; height: 32; color: index%2?"transparent":(FluTheme.dark?"#2a2a2a":"#f9f9f9")
+                        RowLayout {
+                            anchors { fill:parent; margins:4 }
+                            FluText { text: modelData.name||""; Layout.fillWidth: true }
+                            FluText { text: modelData.size||""; Layout.preferredWidth: 90 }
+                            FluProgressBar { Layout.preferredWidth: 140; value: 0 }
+                            FluText { text: modelData.status||""; Layout.preferredWidth: 80 }
+                        }
+                    }
                 }
             }
         }
         FluPivotItem {
             title: "下载"
             contentItem: Component {
-                FluTableView {
-                    anchors { fill: parent; margins: 8 }
-                    columnSource: backend.transferColumns
-                    dataSource: backend.downloadDataSource
+                ListView {
+                    anchors.fill: parent; clip: true
+                    model: backend.downloadDataSource
+                    delegate: Rectangle {
+                        width: parent.width; height: 32; color: index%2?"transparent":(FluTheme.dark?"#2a2a2a":"#f9f9f9")
+                        RowLayout {
+                            anchors { fill:parent; margins:4 }
+                            FluText { text: modelData.name||""; Layout.fillWidth: true }
+                            FluText { text: modelData.size||""; Layout.preferredWidth: 90 }
+                            FluProgressBar { Layout.preferredWidth: 140; value: 0 }
+                            FluText { text: modelData.status||""; Layout.preferredWidth: 80 }
+                        }
+                    }
                 }
             }
         }

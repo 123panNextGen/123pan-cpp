@@ -9,6 +9,9 @@
 #include <QClipboard>
 #include <QApplication>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 namespace app {
 
@@ -123,23 +126,39 @@ void Backend::refreshFileList() {
     _pan->parent_file_id=_fileCurrentDirId; _pan->file_page=0;
     auto[code,items]=_pan->get_dir_by_id(_fileCurrentDirId,false,true,100);
     if(code!=0){ emit fileListChanged(); return; }
-    _fileTableData.clear(); _fileTreeData.clear();
+    QVariantList table, tree;
+    int64_t totalUsed=0;
     for(auto& item:items){
         std::string name=item.value("FileName",item.value("fileName",""));
         int type=item.value("Type",item.value("type",0));
-        int64_t sz=item.value("Size",item.value("size",0));
+        // Safe size parsing: handle number and string types
+        int64_t sz=0;
+        if(item.contains("Size")){
+            auto& s=item["Size"];
+            if(s.is_number()) sz=s.get<int64_t>();
+            else if(s.is_string()) try{ sz=std::stoll(s.get<std::string>()); }catch(...){}
+        }else if(item.contains("size")){
+            auto& s=item["size"];
+            if(s.is_number()) sz=s.get<int64_t>();
+            else if(s.is_string()) try{ sz=std::stoll(s.get<std::string>()); }catch(...){}
+        }
         int64_t fid=item.value("FileId",item.value("fileId",0));
+        totalUsed+=sz;
         QVariantMap row;
         row["name"]=QString::fromStdString(name);
         row["typeName"]=type==1?"📁 文件夹":QString::fromStdString(get_file_type_name(type));
         row["size"]=QString::fromStdString(format_file_size(sz));
         row["type"]=type; row["fileId"]=(qint64)fid;
-        if(type==1)_fileTreeData.append(row);
-        _fileTableData.append(row);
+        if(type==1)tree.append(row);
+        table.append(row);
     }
-    updateStorageInfo();
-    emit fileListChanged();
+    _fileTableData=table; _fileTreeData=tree;
+    _storageUsed=QString::fromStdString(format_file_size(totalUsed));
+    _storagePercent=MAX_STORAGE_CAPACITY>0?(double)totalUsed/MAX_STORAGE_CAPACITY*100:0;
+    emit fileListChanged(); emit storageChanged();
 }
+
+void Backend::updateStorageInfo() {} // no-op now, done in refreshFileList
 
 void Backend::fileGoParentDir() {
     if(_dirStack.empty())return;
@@ -223,13 +242,16 @@ void Backend::fileUploadItem() {
     // Open native file dialog — placeholder for now
 }
 
-void Backend::updateStorageInfo() {
-    if(!_pan)return;
-    int64_t used=0;
-    for(auto& item:_pan->list){ used+=item.value("Size",item.value("size",0)); }
-    _storageUsed=QString::fromStdString(format_file_size(used));
-    _storagePercent=MAX_STORAGE_CAPACITY>0?(double)used/MAX_STORAGE_CAPACITY*100:0;
-    emit storageChanged();
+QString Backend::fileTableJson() const {
+    QJsonArray arr;
+    for (auto& v : _fileTableData) {
+        QJsonObject obj;
+        QVariantMap m = v.toMap();
+        for (auto it = m.begin(); it != m.end(); ++it)
+            obj[it.key()] = QJsonValue::fromVariant(it.value());
+        arr.append(obj);
+    }
+    return QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact));
 }
 
 // ========== Transfer ==========

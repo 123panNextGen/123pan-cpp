@@ -85,6 +85,8 @@ public:
     Q_INVOKABLE void fileShareItem(qint64 fileId);
     Q_INVOKABLE void fileCopyLink(qint64 fileId);
     Q_INVOKABLE void fileUploadItem();
+    // Debug: returns JSON string for file data
+    Q_INVOKABLE QString fileTableJson() const;
 
     // Transfer
     QVariantList uploadDataSource() const { return _uploadData; }

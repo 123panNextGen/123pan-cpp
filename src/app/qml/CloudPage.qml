@@ -11,12 +11,10 @@ FluScrollablePage {
         Layout.fillWidth: true
         Layout.topMargin: 8
 
-        FluGroupBox {
-            title: "账户信息"; Layout.fillWidth: true
-            ColumnLayout {
-                spacing: 8
-                FluText { text: "用户名: " + (backend.isLoggedIn ? backend.currentUserName : "未登录"); font: FluTextStyle.Body }
-                FluText { text: "设备: " + (backend.isLoggedIn ? backend.currentDeviceInfo : "-"); font: FluTextStyle.Caption }
+        FluGroupBox { title: "账户信息"; Layout.fillWidth: true
+            ColumnLayout { spacing: 8
+                FluText { text: "用户名: " + (backend.isLoggedIn?backend.currentUserName:"未登录"); font: FluTextStyle.Body }
+                FluText { text: "设备: " + (backend.isLoggedIn?backend.currentDeviceInfo:"-"); font: FluTextStyle.Caption }
             }
         }
         FluButton { text: "切换账号"; Layout.fillWidth: true; Layout.preferredHeight: 36; onClicked: backend.switchAccount() }
