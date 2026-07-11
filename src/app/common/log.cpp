@@ -45,7 +45,7 @@ static const std::vector<std::string> LEVEL_NAMES = {
 static void cleanup_old_logs(const fs::path& log_dir, int retention_days) {
     if (!fs::exists(log_dir)) return;
 
-    auto cutoff = std::chrono::system_clock::now() - std::chrono::hours(24 * retention_days);
+    auto retention_duration = std::chrono::hours(24 * retention_days);
 
     for (const auto& entry : fs::directory_iterator(log_dir)) {
         if (!entry.is_regular_file()) continue;
@@ -53,33 +53,11 @@ static void cleanup_old_logs(const fs::path& log_dir, int retention_days) {
         if (!filename.starts_with("log_") || !filename.ends_with(".log")) continue;
 
         try {
-            auto ftime = fs::last_write_time(entry.path());
-            auto sctp = std::chrono::clock_cast<std::chrono::system_clock>(
-                decltype(ftime)::clock::now()
-            );
-            // Use last_write_time for comparison
-            auto file_time = fs::last_write_time(entry.path());
-            // Simple approach: if too old based on filename timestamp
-            auto stem = entry.path().stem().string();  // "log_2024-07-11_12-00-00"
-            if (stem.size() > 4) {
-                auto ts_str = stem.substr(4);  // Remove "log_" prefix
-                // Parse as YYYY-MM-DD_HH-MM-SS
-                // We use a simple heuristic: count the number of dashes
-                // and check if it looks like a timestamp
-                if (std::count(ts_str.begin(), ts_str.end(), '-') >= 3) {
-                    // This looks like a timestamp, check age
-                    // For simplicity, we use file system time
-                    (void)cutoff;
-                    // Just delete files older than retention_days
-                    auto now = std::chrono::system_clock::now();
-                    auto last_write = std::chrono::system_clock::now();
-                    // Actually use filesystem last write time
-                    auto ft = fs::last_write_time(entry.path());
-                    auto sctp2 = decltype(ft)::clock::to_sys(ft);
-                    if (sctp2 < cutoff) {
-                        fs::remove(entry.path());
-                    }
-                }
+            auto ft = fs::last_write_time(entry.path());
+            auto now_ft = fs::file_time_type::clock::now();
+            auto age = now_ft - ft;
+            if (age > retention_duration) {
+                fs::remove(entry.path());
             }
         } catch (...) {
             // Ignore errors cleaning up

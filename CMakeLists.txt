@@ -32,12 +32,15 @@ option(BUILD_FLUENTUI_GUI "Build with FluentUI QML interface" ON)
 # Release optimization — minimize binary size
 # ============================================================
 if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
-    # Link-time optimization (implies -flto)
+    # Link-time optimization (implies -flto / /GL + /LTCG)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-    # Function-level sections for linker garbage collection
-    add_compile_options(-ffunction-sections -fdata-sections)
-    if(NOT APPLE)
-        add_link_options(-Wl,--gc-sections)
+    # Function-level sections for linker garbage collection (GCC/Clang only;
+    # MSVC already does this via /Gy + /OPT:REF by default in Release)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        add_compile_options(-ffunction-sections -fdata-sections)
+        if(NOT APPLE)
+            add_link_options(-Wl,--gc-sections)
+        endif()
     endif()
 endif()
 

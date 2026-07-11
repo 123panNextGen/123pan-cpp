@@ -77,7 +77,7 @@ jobs:
             pkg-config \
             ccache \
             zip \
-            upx \
+            patchelf \
             qt6-base-dev \
             qt6-base-private-dev \
             qt6-declarative-dev \
@@ -218,12 +218,8 @@ jobs:
         run: cmake --build build --config Release
 
       # ==========================================================
-      #  UPX Compression
+      #  UPX Compression (Windows only; Linux already stripped)
       # ==========================================================
-
-      - name: Compress with UPX (Linux)
-        if: runner.os == 'Linux'
-        run: upx --best --lzma build/123pan
 
       - name: Compress with UPX (Windows)
         if: runner.os == 'Windows'
@@ -237,9 +233,59 @@ jobs:
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
-          cp build/123pan .
-          chmod +x 123pan
-          zip -9 "123pan-${{ matrix.artifact }}.zip" 123pan
+          mkdir -p deploy
+          cp build/123pan deploy/
+          chmod +x deploy/123pan
+
+          # ── Copy all non-system shared libraries ──────────────
+          mkdir -p deploy/lib
+          ldd build/123pan | grep '=> /' | awk '{print $3}' | while read -r lib; do
+            case "$lib" in
+              /lib/ld-linux-*|linux-vdso.so*) continue ;;
+            esac
+            cp -v "$lib" deploy/lib/ 2>/dev/null || true
+          done
+
+          # ── Copy Qt plugins (platforms is essential) ─────────
+          QT_PLUGINS_DIR=$(find /usr/lib -type d -path '*/qt6/plugins' 2>/dev/null | head -1)
+          if [ -n "$QT_PLUGINS_DIR" ]; then
+            mkdir -p deploy/lib/qt6/plugins
+            cp -r "$QT_PLUGINS_DIR/platforms" deploy/lib/qt6/plugins/
+            cp -r "$QT_PLUGINS_DIR/imageformats" deploy/lib/qt6/plugins/ 2>/dev/null || true
+            cp -r "$QT_PLUGINS_DIR/iconengines" deploy/lib/qt6/plugins/ 2>/dev/null || true
+          fi
+
+          # ── Copy QML modules ─────────────────────────────────
+          QT_QML_DIR=$(find /usr/lib -type d -path '*/qt6/qml' 2>/dev/null | head -1)
+          if [ -n "$QT_QML_DIR" ]; then
+            mkdir -p deploy/lib/qt6/qml
+            for mod in Qt QtQml QtQuick QtQuick.2 QtQuick.Controls QtQuick.Controls.2 \
+                       QtQuick.Layouts QtQuick.Window QtQuick.Templates QtQuick.Controls.FluentUI \
+                       QtQuick.Controls.impl QtQuick.Controls.Basic QtQuick.Controls.Material \
+                       QtQuick.Controls.Universal QtQuick.NativeStyle; do
+              if [ -d "$QT_QML_DIR/$mod" ]; then
+                cp -r "$QT_QML_DIR/$mod" deploy/lib/qt6/qml/
+              fi
+            done
+          fi
+
+          # ── Set RPATH so binary finds libs in ./lib/ ─────────
+          patchelf --set-rpath '\$ORIGIN/lib' deploy/123pan
+
+          # ── Create launcher script ───────────────────────────
+          cat > deploy/123pan.sh << 'SCRIPT'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="$DIR/lib/qt6/plugins"
+          export QML2_IMPORT_PATH="$DIR/lib/qt6/qml"
+          exec "$DIR/123pan" "$@"
+          SCRIPT
+          chmod +x deploy/123pan.sh
+
+          # ── Package ──────────────────────────────────────────
+          cd deploy
+          zip -9r "../123pan-${{ matrix.artifact }}.zip" .
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
