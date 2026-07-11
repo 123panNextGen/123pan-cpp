@@ -1,16 +1,15 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import FluentUI
 
-FluContentPage {
-    id: loginPage
-    title: "登录123云盘"
+FluScrollablePage {
+    title: "登录"
+    launchMode: FluPageType.SingleTask
 
     ColumnLayout {
         anchors.centerIn: parent
-        width: 400
-        spacing: 20
+        width: 360
+        spacing: 16
 
         FluText {
             text: "欢迎使用123云盘"
@@ -33,16 +32,13 @@ FluContentPage {
         FluFilledButton {
             text: "登录"
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: 36
             enabled: accountInput.text.length > 0 && passwordInput.text.length > 0
-            onClicked: {
-                loginPage.enabled = false
-                backend.login(accountInput.text, passwordInput.text)
-            }
+            onClicked: backend.login(accountInput.text, passwordInput.text)
         }
 
         FluText {
-            text: loginPage.statusText || ""
+            id: errorText
             font: FluTextStyle.Caption
             color: "#e81123"
             Layout.alignment: Qt.AlignHCenter
@@ -50,13 +46,8 @@ FluContentPage {
         }
     }
 
-    property string statusText: ""
-
     Connections {
         target: backend
-        function onLoginFailed(message) {
-            loginPage.statusText = message
-            loginPage.enabled = true
-        }
+        function onLoginFailed(msg) { errorText.text = msg }
     }
 }

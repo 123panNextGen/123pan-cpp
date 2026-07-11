@@ -1,6 +1,19 @@
 # 123pan-CPP
 
-突破限制 · 高效下载 · 简单易用
+>突破限制 · 高效下载 · 简单易用
+
+<a href="https://github.com/123pannextgen/123pan-cpp/stargazers"><img src="https://img.shields.io/github/stars/123pannextgen/123pan-cpp" alt="Stars"></a>
+<a href="https://github.com/123pannextgen/123pan-cpp/issues"><img src="https://img.shields.io/github/issues/123pannextgen/123pan-cpp" alt="Issues"></a>
+<a href="https://github.com/123pannextgen/123pan-cpp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-WTFPL-green" alt="License"></a>
+<a href="https://isocpp.org/"><img src="https://img.shields.io/badge/c++-20%2B-blue" alt="c++ Version"></a>
+<a href="https://github.com/123pannextgen/123pan-cpp/releases"><img src="https://img.shields.io/github/v/tag/123pannextgen/123pan-cpp?label=release" alt="latest_release"></a>
+<a href="https://github.com/123pannextgen/123pan-cpp/releases"><img src="https://img.shields.io/github/downloads/123pannextgen/123pan-cpp/total" alt="Downloads"></a>
+<br>
+<img src="./doc/image.png" width="600" alt="Screenshot">
+
+>前言
+>由于原项目体积和效率都很差，我们团队决定制作一个更高效的版本
+>但由于团队技术能力问题，本项目**完全由AI编写**
 
 ## 介绍
 
@@ -21,7 +34,8 @@ UI 基于 [FluentUI](https://github.com/zhuzichu520/FluentUI)（QML Fluent Desig
 - [cpr](https://github.com/libcpr/cpr) >= 1.10
 - OpenSSL >= 1.1
 
-> **注意：** FluentUI 已作为 Git 子模块包含在 `thirdparty/FluentUI/` 中，首次克隆后需初始化子模块。
+>[!WARNING]
+> FluentUI 已作为 Git 子模块包含在 `thirdparty/FluentUI/` 中，**首次克隆后需初始化子模块**。
 
 ## 构建步骤
 
@@ -164,4 +178,22 @@ sudo pacman -S base-devel cmake qt6-base qt6-declarative \
 cmake -B build -DBUILD_TESTS=ON
 cmake --build build -j$(nproc)
 cd build && ctest --output-on-failure
+```
+## 协议
+[WTFPL](./LICENSE)
+```
+        DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+                    Version 2, December 2004 
+
+ Copyright (C) 2004 Sam Hocevar <sam@hocevar.net> 
+
+ Everyone is permitted to copy and distribute verbatim or modified 
+ copies of this license document, and changing it is allowed as long 
+ as the name is changed. 
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+
+  0. You just DO WHAT THE FUCK YOU WANT TO.
+
 ```

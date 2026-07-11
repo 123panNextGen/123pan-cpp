@@ -46,13 +46,14 @@ class Backend : public QObject {
 
     // ---- 文件浏览 ----
     Q_PROPERTY(int fileCurrentDirId READ fileCurrentDirId NOTIFY fileListChanged)
-    Q_PROPERTY(QVariantList fileBreadcrumb READ fileBreadcrumb NOTIFY fileListChanged)
-    Q_PROPERTY(QObject* fileTableModel READ fileTableModel CONSTANT)
-    Q_PROPERTY(QObject* fileTreeModel READ fileTreeModel CONSTANT)
+    Q_PROPERTY(QVariantList fileTableDataSource READ fileTableDataSource NOTIFY fileListChanged)
+    Q_PROPERTY(QVariantList fileTableColumns READ fileTableColumns CONSTANT)
+    Q_PROPERTY(QVariantList fileTreeDataSource READ fileTreeDataSource NOTIFY fileListChanged)
 
     // ---- 传输 ----
-    Q_PROPERTY(QObject* uploadTaskModel READ uploadTaskModel CONSTANT)
-    Q_PROPERTY(QObject* downloadTaskModel READ downloadTaskModel CONSTANT)
+    Q_PROPERTY(QVariantList uploadDataSource READ uploadDataSource NOTIFY transferChanged)
+    Q_PROPERTY(QVariantList downloadDataSource READ downloadDataSource NOTIFY transferChanged)
+    Q_PROPERTY(QVariantList transferColumns READ transferColumns CONSTANT)
 
 public:
     explicit Backend(QObject* parent = nullptr);
@@ -83,7 +84,6 @@ public:
     void setDownloadSpeedLimit(int v);
     int uploadSpeedLimit() const;
     void setUploadSpeedLimit(int v);
-    Q_INVOKABLE void selectDownloadFolder();
 
     // ---- 代理设置 ----
     bool proxyEnabled() const;
@@ -108,22 +108,22 @@ public:
 
     // ---- 文件浏览 ----
     int fileCurrentDirId() const { return _fileCurrentDirId; }
-    QVariantList fileBreadcrumb() const;
-    QObject* fileTableModel() { return _fileTableModel; }
-    QObject* fileTreeModel() { return _fileTreeModel; }
+    QVariantList fileTableDataSource() const { return _fileTableData; }
+    QVariantList fileTableColumns() const;
+    QVariantList fileTreeDataSource() const { return _fileTreeData; }
 
     Q_INVOKABLE void fileNavigateTo(int dirId);
     Q_INVOKABLE void fileGoParentDir();
     Q_INVOKABLE void fileRefresh();
-    Q_INVOKABLE void fileCreateFolder();
-    Q_INVOKABLE void fileUpload();
-    Q_INVOKABLE void fileDownload();
-    Q_INVOKABLE void fileDelete();
-    Q_INVOKABLE void fileOpenItem(int row);
+    Q_INVOKABLE void fileCreateFolder(const QString& name);
+    Q_INVOKABLE void fileDeleteItem(int fileId);
+    Q_INVOKABLE void fileRenameItem(int fileId, const QString& newName);
+    Q_INVOKABLE void fileDownloadItem(int fileId);
 
     // ---- 传输 ----
-    QObject* uploadTaskModel() { return _uploadTaskModel; }
-    QObject* downloadTaskModel() { return _downloadTaskModel; }
+    QVariantList uploadDataSource() const { return _uploadData; }
+    QVariantList downloadDataSource() const { return _downloadData; }
+    QVariantList transferColumns() const;
 
 signals:
     void loginSuccess();
@@ -144,6 +144,7 @@ signals:
     void logLevelIndexChanged();
 
     void fileListChanged();
+    void transferChanged();
     void storageInfoChanged(const QString& usedText);
 
 private:
@@ -154,14 +155,12 @@ private:
     std::shared_ptr<Pan123> _pan;
     bool _isLoggedIn = false;
 
-    // File browsing state
     int _fileCurrentDirId = 0;
-    QObject* _fileTableModel;
-    QObject* _fileTreeModel;
+    QVariantList _fileTableData;
+    QVariantList _fileTreeData;
 
-    // Transfer state
-    QObject* _uploadTaskModel;
-    QObject* _downloadTaskModel;
+    QVariantList _uploadData;
+    QVariantList _downloadData;
 };
 
 }  // namespace app

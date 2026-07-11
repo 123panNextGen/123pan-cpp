@@ -69,10 +69,20 @@ FluWindow {
         FluTheme.nativeText = true
         FluTheme.animationEnabled = true
         backend.init()
-        // Select the first navigation item to show initial page
-        navView.setCurrentIndex(0)
         if (!backend.isLoggedIn) {
             loginLoader.source = "qrc:/qml/LoginPage.qml"
+        }
+    }
+
+    // Delay initial page load until NavigationView is fully initialized
+    Timer {
+        id: initTimer
+        interval: 100
+        running: true
+        repeat: false
+        onTriggered: {
+            navView.push("qrc:/qml/FilePage.qml")
+            navView.setCurrentIndex(0)
         }
     }
 

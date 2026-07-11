@@ -1,79 +1,51 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import FluentUI
 
-FluContentPage {
-    id: filePage
+FluScrollablePage {
     title: "文件管理"
+    launchMode: FluPageType.SingleTask
 
     ColumnLayout {
-        anchors.fill: parent
         spacing: 8
+        Layout.fillWidth: true
 
         // Toolbar
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
+            spacing: 6
             FluButton {
                 text: "← 返回上级"
                 enabled: backend.fileCurrentDirId !== 0
                 onClicked: backend.fileGoParentDir()
             }
-
-            FluBreadcrumbBar {
-                id: breadcrumb
-                Layout.fillWidth: true
-                model: backend.fileBreadcrumb
-                onCurrentIndexChanged: backend.fileNavigateTo(breadcrumb.currentIndex)
-            }
-
-            FluButton { text: "新建文件夹"; onClicked: backend.fileCreateFolder() }
-            FluButton { text: "上传"; onClicked: backend.fileUpload() }
-            FluButton { text: "下载"; onClicked: backend.fileDownload() }
-            FluButton { text: "删除"; onClicked: backend.fileDelete() }
             FluButton { text: "刷新"; onClicked: backend.fileRefresh() }
         }
 
-        // Main content: tree + table
+        // Quick create folder row
         RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            // Folder tree (left sidebar)
-            FluTreeView {
-                id: folderTree
-                Layout.preferredWidth: 220
-                Layout.fillHeight: true
-                model: backend.fileTreeModel
-                onCurrentIndexChanged: {
-                    if (currentIndex >= 0) {
-                        backend.fileNavigateTo(currentIndex)
-                    }
-                }
-            }
-
-            // File list table (right)
-            FluTableView {
-                id: fileTable
+            FluTextBox {
+                id: newFolderInput
+                placeholderText: "新文件夹名称"
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                model: backend.fileTableModel
-                onDoubleClicked: function(row) {
-                    backend.fileOpenItem(row)
+            }
+            FluButton {
+                text: "创建"
+                enabled: newFolderInput.text.length > 0
+                onClicked: {
+                    backend.fileCreateFolder(newFolderInput.text)
+                    newFolderInput.text = ""
                 }
             }
         }
-    }
 
-    Connections {
-        target: backend
-        function onFileListChanged() {
-            // QML models auto-update
-        }
-        function onStorageInfoChanged(usedText) {
-            // Update storage display if needed
+        // File table
+        FluTableView {
+            id: fileTable
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            columnSource: backend.fileTableColumns
+            dataSource: backend.fileTableDataSource
         }
     }
 }

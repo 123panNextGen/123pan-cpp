@@ -1,34 +1,26 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import FluentUI
 
-FluContentPage {
-    id: cloudPage
+FluScrollablePage {
     title: "云盘信息"
+    launchMode: FluPageType.SingleTask
 
     ColumnLayout {
-        anchors.fill: parent
-        spacing: 20
-        anchors.margins: 24
-
-        FluText {
-            text: "云盘信息"
-            font: FluTextStyle.TitleLarge
-        }
+        spacing: 16
+        anchors { left: parent.left; right: parent.right; margins: 8 }
 
         FluGroupBox {
             title: "账户信息"
             Layout.fillWidth: true
-
             ColumnLayout {
-                spacing: 12
+                spacing: 8
                 FluText {
-                    text: "用户名: " + backend.currentUserName
+                    text: "用户名: " + (backend.isLoggedIn ? backend.currentUserName : "未登录")
                     font: FluTextStyle.Body
                 }
                 FluText {
-                    text: "设备: " + backend.currentDeviceInfo
+                    text: "设备: " + (backend.isLoggedIn ? backend.currentDeviceInfo : "-")
                     font: FluTextStyle.Caption
                 }
             }
@@ -37,15 +29,14 @@ FluContentPage {
         FluButton {
             text: "切换账号"
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: 36
             onClicked: backend.switchAccount()
         }
 
         FluFilledButton {
             text: "退出登录"
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            color: "#e81123"
+            Layout.preferredHeight: 36
             onClicked: backend.logout()
         }
     }
