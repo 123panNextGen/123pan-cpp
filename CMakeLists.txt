@@ -69,6 +69,23 @@ if(BUILD_GUI)
     endif()
 endif()
 
+# Completely disable Qt6's automatic deployment support.
+# QT_DEPLOY_AUTO=OFF (above) stops the high-level switch, but
+# qt_standard_project_setup() inside FluentUI may still register
+# internal deployment hooks.  qt_disable_deploy_support() (Qt ≥ 6.7)
+# tears down the entire deployment machinery so no post-build
+# step ever runs the binary.
+if(COMMAND qt_disable_deploy_support)
+    qt_disable_deploy_support()
+endif()
+
+# Also prevent vcpkg from deploying DLLs at build time (z-applocal)
+# in CI where we copy DLLs explicitly in the package step.  On dev
+# machines z-applocal is convenient so we leave it on by default.
+if(DEFINED ENV{CI})
+    set(VCPKG_APPLOCAL_DEPS OFF CACHE BOOL "" FORCE)
+endif()
+
 # JSON library
 find_package(nlohmann_json REQUIRED)
 
@@ -208,6 +225,10 @@ if(BUILD_GUI)
     target_include_directories(123pan PRIVATE
         ${CMAKE_SOURCE_DIR}/src
     )
+
+    # Belt-and-suspenders: also switch off deployment on the target
+    # itself, in case a global override is ignored.
+    set_target_properties(123pan PROPERTIES QT_DEPLOY_AUTO OFF)
 
     if(BUILD_FLUENTUI_GUI)
         target_link_libraries(123pan PRIVATE
