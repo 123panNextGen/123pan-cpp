@@ -46,7 +46,7 @@ endif()
 # ============================================================
 if(BUILD_GUI)
     if(BUILD_FLUENTUI_GUI)
-        find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Quick Qml QuickControls2)
+        find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Quick Qml QuickControls2 PrintSupport)
     else()
         find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
     endif()
@@ -149,6 +149,12 @@ if(BUILD_FLUENTUI_GUI)
     # Build FluentUI as static library
     set(FLUENTUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(FLUENTUI_BUILD_STATIC_LIB ON CACHE BOOL "" FORCE)
+
+    # FluentUI's QHotkey requires X11 on Linux
+    if(UNIX AND NOT APPLE)
+        find_package(X11 REQUIRED)
+    endif()
+
     add_subdirectory(thirdparty/FluentUI)
 endif()
 
@@ -194,6 +200,7 @@ if(BUILD_GUI)
             Qt6::Quick
             Qt6::Qml
             Qt6::QuickControls2
+            Qt6::PrintSupport
             fluentui
             fluentuiplugin
             nlohmann_json::nlohmann_json
@@ -202,6 +209,10 @@ if(BUILD_GUI)
             OpenSSL::SSL
             OpenSSL::Crypto
         )
+        # FluentUI's QHotkey links X11 on Linux — must propagate to main target
+        if(UNIX AND NOT APPLE)
+            target_link_libraries(123pan PRIVATE X11::X11)
+        endif()
         # Required for FluentUI static linking — enables FluentUI::registerTypes()
         target_compile_definitions(123pan PRIVATE FLUENTUI_BUILD_STATIC_LIB)
         target_include_directories(123pan PRIVATE
