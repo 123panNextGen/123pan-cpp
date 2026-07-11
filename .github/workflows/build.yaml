@@ -72,7 +72,7 @@ jobs:
       ## Build CPR
       ############################################################
 
-      - name: Build cpr
+      - name: Build cpr (Linux)
         if: runner.os == 'Linux'
         run: |
           git clone https://github.com/libcpr/cpr.git
@@ -98,14 +98,15 @@ jobs:
         run: |
           choco install ninja -y
 
-      - name: Install Qt
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.3
           arch: win64_msvc2022_64
           cache: true
 
-      - name: Setup vcpkg
+      - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -123,7 +124,7 @@ jobs:
       ## Cache
       ############################################################
 
-      - name: Setup ccache
+      - name: Setup ccache (Linux)
         if: runner.os == 'Linux'
         uses: hendrikmuhs/ccache-action@v1
 
