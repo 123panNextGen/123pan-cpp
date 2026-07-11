@@ -102,7 +102,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.8.3
+          version: 6.5.3
           host: windows
           target: desktop
           arch: win64_msvc2022_64
@@ -273,6 +273,6 @@ jobs:
           prerelease: ${{ github.event.inputs.prerelease || false }}
           generate_release_notes: false
           files: |
-            123pan-cpp-linux-x64.zip
-            123pan-cpp-linux-arm64.zip
-            123pan-cpp-windows-x64.zip
+            123pan-linux-x64.zip
+            123pan-linux-arm64.zip
+            123pan-windows-x64.zip
