@@ -8,7 +8,7 @@ namespace app {
 
 /// 应用版本信息
 constexpr int YEAR = 2026;
-constexpr const char* VERSION = "0.0.1";
+constexpr const char* VERSION = "1.0.0";
 constexpr const char* ABOUT_URL = "https://github.com/123panNextGen/123pan-cpp";
 
 /// 日志保留天数

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(123pan-cpp VERSION 0.0.1 LANGUAGES CXX)
+project(123pan-cpp VERSION 1.0.0 LANGUAGES CXX)
 
 # C++20 required
 set(CMAKE_CXX_STANDARD 20)

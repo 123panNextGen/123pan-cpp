@@ -7,47 +7,17 @@ FluScrollablePage {
     launchMode: FluPageType.SingleTask
 
     ColumnLayout {
-        anchors.centerIn: parent
-        width: 360
-        spacing: 16
+        anchors.centerIn: parent; width: 360; spacing: 16
 
-        FluText {
-            text: "欢迎使用123云盘"
-            font: FluTextStyle.Title
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        FluTextBox {
-            id: accountInput
-            placeholderText: "账户名"
-            Layout.fillWidth: true
-        }
-
-        FluPasswordBox {
-            id: passwordInput
-            placeholderText: "密码"
-            Layout.fillWidth: true
-        }
-
+        FluText { text: "欢迎使用123云盘"; font: FluTextStyle.Title; Layout.alignment: Qt.AlignHCenter }
+        FluTextBox { id: inpAcc; placeholderText: "账户名"; Layout.fillWidth: true }
+        FluPasswordBox { id: inpPwd; placeholderText: "密码"; Layout.fillWidth: true }
         FluFilledButton {
-            text: "登录"
-            Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            enabled: accountInput.text.length > 0 && passwordInput.text.length > 0
-            onClicked: backend.login(accountInput.text, passwordInput.text)
+            text: "登录"; Layout.fillWidth: true; Layout.preferredHeight: 36
+            enabled: inpAcc.text.length>0 && inpPwd.text.length>0
+            onClicked: backend.login(inpAcc.text, inpPwd.text)
         }
-
-        FluText {
-            id: errorText
-            font: FluTextStyle.Caption
-            color: "#e81123"
-            Layout.alignment: Qt.AlignHCenter
-            visible: text.length > 0
-        }
+        FluText { id: errText; font: FluTextStyle.Caption; color: "#e81123"; Layout.alignment: Qt.AlignHCenter; visible: text.length>0 }
     }
-
-    Connections {
-        target: backend
-        function onLoginFailed(msg) { errorText.text = msg }
-    }
+    Connections { target: backend; function onLoginFailed(msg) { errText.text=msg } }
 }

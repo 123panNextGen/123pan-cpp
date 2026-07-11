@@ -7,7 +7,8 @@ FluScrollablePage {
     launchMode: FluPageType.SingleTask
 
     FluPivot {
-        anchors.fill: parent
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         FluPivotItem {
             title: "上传"
             contentItem: Component {
