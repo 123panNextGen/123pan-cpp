@@ -99,14 +99,10 @@ jobs:
           choco install ninja -y
 
       - name: Install Qt
-        if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.5.3
-          host: windows
-          target: desktop
+          version: 6.8.3
           arch: win64_msvc2022_64
-          modules: qttools
           cache: true
 
       - name: Setup vcpkg
@@ -153,7 +149,7 @@ jobs:
           cmake -B build `
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" `
+            -DCMAKE_PREFIX_PATH="$env:Qt6_ROOT_DIR" `
             -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
             -DBUILD_GUI=ON `
             -DBUILD_TESTS=OFF
