@@ -309,7 +309,7 @@ jobs:
             Copy-Item "$vcpkgBin\*.dll" deploy\ -ErrorAction SilentlyContinue
           }
 
-          & "$env:Qt6_DIR\bin\windeployqt.exe" deploy\123pan.exe --dir deploy
+          & "$env:QT_ROOT_DIR\bin\windeployqt.exe" deploy\123pan.exe --dir deploy
           Compress-Archive deploy\* "123pan-${{ matrix.artifact }}.zip"
 
       # ==========================================================
