@@ -53,6 +53,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
 
       ############################################################
       ## Linux
@@ -76,7 +78,8 @@ jobs:
             libssl-dev \
             libcurl4-openssl-dev \
             nlohmann-json3-dev \
-            libspdlog-dev
+            libspdlog-dev \
+            upx
 
       ############################################################
       ## Build CPR
@@ -136,6 +139,12 @@ jobs:
             spdlog:${{ matrix.vcpkg_triplet }} `
             nlohmann-json:${{ matrix.vcpkg_triplet }}
 
+      - name: Install UPX (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install upx -y            
+
       ############################################################
       ## Cache
       ############################################################
@@ -189,14 +198,28 @@ jobs:
           cmake --build build --config Release
 
       ############################################################
+      ## UPX Compression
+      ############################################################
+
+      - name: Compress with UPX (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          upx --best --lzma build/123pan
+
+
+      - name: Compress with UPX (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          upx --best --lzma build\123pan.exe
+
+      ############################################################
       ## Package Linux
       ############################################################
 
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
-          strip build/123pan
-
           cp build/123pan .
 
           chmod +x 123pan
