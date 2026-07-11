@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Prevent windows.h from defining min/max macros that break std::min/std::max
+if(WIN32)
+    add_compile_definitions(NOMINMAX)
+endif()
+
 # Enable Qt MOC, UIC, RCC automatically
 if(BUILD_GUI)
     set(CMAKE_AUTOMOC ON)
