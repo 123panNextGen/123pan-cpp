@@ -79,6 +79,8 @@ jobs:
             libcurl4-openssl-dev \
             nlohmann-json3-dev \
             libspdlog-dev \
+            qt6-printsupport-dev \
+            libx11-dev \
             upx
 
       ############################################################
