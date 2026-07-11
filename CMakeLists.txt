@@ -50,6 +50,15 @@ if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
 endif()
 
 # ============================================================
+# Deploy control — must be set BEFORE find_package(Qt6)
+# ============================================================
+# FluentUI's qt_standard_project_setup() would otherwise enable
+# QT_DEPLOY_AUTO globally, adding post-build steps that run the
+# binary (windeployqt / qmlimportscanner) → fails in headless CI.
+# We deploy explicitly in the CI workflow instead.
+set(QT_DEPLOY_AUTO OFF CACHE BOOL "Disable Qt6 auto-deployment at build time" FORCE)
+
+# ============================================================
 # Find packages
 # ============================================================
 if(BUILD_GUI)

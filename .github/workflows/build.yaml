@@ -216,6 +216,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: cmake --build build --config Release
+        env:
+          QT_QPA_PLATFORM: offscreen
 
       # ==========================================================
       #  UPX Compression (Windows only; Linux already stripped)
@@ -293,6 +295,15 @@ jobs:
         run: |
           New-Item deploy -ItemType Directory -Force | Out-Null
           Copy-Item build\123pan.exe deploy\
+
+          # Deploy vcpkg shared libraries (normally done by z-applocal,
+          # but we disabled QT_DEPLOY_AUTO to prevent running the exe at
+          # build time).
+          $vcpkgBin = "C:\vcpkg\installed\${{ matrix.vcpkg_triplet }}\bin"
+          if (Test-Path $vcpkgBin) {
+            Copy-Item "$vcpkgBin\*.dll" deploy\ -ErrorAction SilentlyContinue
+          }
+
           & "$env:Qt6_DIR\bin\windeployqt.exe" deploy\123pan.exe --dir deploy
           Compress-Archive deploy\* "123pan-${{ matrix.artifact }}.zip"
 
