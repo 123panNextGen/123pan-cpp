@@ -1,0 +1,114 @@
+/* ============================================================
+ * 123pan-cpp — 组件样式 (Component Styles)
+ * 应用特定组件的样式
+ * ============================================================ */
+
+/* ---- 导航侧边栏 ---- */
+#navList {
+    background-color: #f0f0f0;
+    border: none;
+    border-right: 1px solid #e0e0e0;
+    padding: 8px 4px;
+    font-size: 14px;
+}
+#navList::item {
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin: 2px 4px;
+    color: #444444;
+}
+#navList::item:selected {
+    background-color: rgba(0, 120, 212, 0.12);
+    color: #0078d4;
+    font-weight: bold;
+}
+#navList::item:hover:!selected {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #333333;
+}
+
+/* ---- 面包屑 ---- */
+#breadcrumbFrame {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+/* ---- 内容框架 ---- */
+#contentFrame {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+/* ---- 存储信息卡片 ---- */
+#storageCard {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+/* ---- 标题标签 ---- */
+#titleLabel {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333333;
+}
+
+/* ---- 设置页样式 ---- */
+#settingLabel {
+    font-size: 28px;
+    font-weight: bold;
+    color: #333333;
+    padding-bottom: 8px;
+}
+#scrollWidget {
+    background-color: transparent;
+}
+
+/* ---- 登录页样式 ---- */
+#loginTitle {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333333;
+}
+
+/* ---- 传输页 ---- */
+#transferSegmentWidget {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+}
+
+/* ---- 分页控件 ---- */
+#segmentWidget::item {
+    padding: 6px 18px;
+    border-radius: 4px;
+    color: #555555;
+}
+#segmentWidget::item:selected {
+    background-color: #0078d4;
+    color: white;
+}
+
+/* ---- 云盘信息页 ---- */
+#accountGroup {
+    font-size: 14px;
+}
+#usernameLabel {
+    font-size: 14px;
+    color: #555555;
+}
+
+/* ---- 粗体标签 ---- */
+QLabel[bold="true"] {
+    font-weight: bold;
+}
+
+/* ---- 描述文字 ---- */
+QLabel[caption="true"] {
+    color: #888888;
+    font-size: 12px;
+}

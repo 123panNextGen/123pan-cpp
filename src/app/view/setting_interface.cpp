@@ -28,13 +28,11 @@ SpinBoxCard::SpinBoxCard(const QString& title, const QString& desc,
 
     auto* label_layout = new QVBoxLayout();
     auto* title_label = new QLabel(title, this);
-    QFont title_font;
-    title_font.setBold(true);
-    title_label->setFont(title_font);
+    title_label->setProperty("bold", true);
     label_layout->addWidget(title_label);
 
     auto* desc_label = new QLabel(desc, this);
-    desc_label->setStyleSheet("color: gray; font-size: 12px;");
+    desc_label->setProperty("caption", true);
     label_layout->addWidget(desc_label);
 
     layout->addLayout(label_layout);
@@ -74,10 +72,6 @@ SettingInterface::SettingInterface(QWidget* parent)
 
     _setting_label = new QLabel("设置", _scroll_widget);
     _setting_label->setObjectName("settingLabel");
-    QFont label_font;
-    label_font.setPointSize(24);
-    label_font.setBold(true);
-    _setting_label->setFont(label_font);
     _expand_layout->addWidget(_setting_label);
 
     // ---- 下载设置组 ----

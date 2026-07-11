@@ -36,16 +36,13 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Navigation sidebar
     _nav_list = new QListWidget(central);
-    _nav_list->setFixedWidth(160);
-    _nav_list->setSpacing(4);
-    _nav_list->addItem("文件");
-    _nav_list->addItem("传输");
-    _nav_list->addItem("云盘");
-    _nav_list->addItem("设置");
-
-    QFont nav_font;
-    nav_font.setPointSize(12);
-    _nav_list->setFont(nav_font);
+    _nav_list->setObjectName("navList");
+    _nav_list->setFixedWidth(180);
+    _nav_list->setSpacing(2);
+    _nav_list->addItem("📁 文件");
+    _nav_list->addItem("📥 传输");
+    _nav_list->addItem("☁ 云盘");
+    _nav_list->addItem("⚙ 设置");
 
     main_layout->addWidget(_nav_list);
 

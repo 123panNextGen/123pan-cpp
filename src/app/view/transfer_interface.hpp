@@ -114,8 +114,6 @@ private:
 
     std::vector<std::shared_ptr<UploadTask>> _upload_tasks;
     std::vector<std::shared_ptr<DownloadTask>> _download_tasks;
-    std::vector<UploadThread*> _upload_threads;
-    std::vector<DownloadThread*> _download_threads;
 
     std::shared_ptr<Pan123> _pan;
 };

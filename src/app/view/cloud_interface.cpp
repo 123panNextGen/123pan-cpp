@@ -37,10 +37,7 @@ CloudInterface::CloudInterface(QWidget* parent)
 
     // Title
     auto* title_label = new QLabel("云盘信息", this);
-    QFont title_font;
-    title_font.setPointSize(20);
-    title_font.setBold(true);
-    title_label->setFont(title_font);
+    title_label->setObjectName("titleLabel");
     main_layout->addWidget(title_label);
 
     // Account info group
@@ -50,9 +47,7 @@ CloudInterface::CloudInterface(QWidget* parent)
 
     // Username display
     _username_label = new QLabel(this);
-    QFont user_font;
-    user_font.setPointSize(12);
-    _username_label->setFont(user_font);
+    _username_label->setObjectName("usernameLabel");
     group_layout->addRow("账户", _username_label);
 
     main_layout->addWidget(account_group);
@@ -65,7 +60,7 @@ CloudInterface::CloudInterface(QWidget* parent)
 
     auto* logout_btn = new QPushButton("退出登录", this);
     logout_btn->setMinimumHeight(36);
-    logout_btn->setStyleSheet("QPushButton { color: red; }");
+    logout_btn->setProperty("danger", true);
     connect(logout_btn, &QPushButton::clicked, this, &CloudInterface::logout_requested);
     main_layout->addWidget(logout_btn);
 

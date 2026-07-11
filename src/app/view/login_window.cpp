@@ -19,6 +19,7 @@ LoginDialog::LoginDialog(QWidget* parent)
     setWindowTitle("登录123云盘");
     resize(460, 320);
     setFixedSize(460, 320);
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     logger->debug("LoginDialog 初始化");
 
     auto* layout = new QVBoxLayout(this);
@@ -27,10 +28,7 @@ LoginDialog::LoginDialog(QWidget* parent)
 
     // Title
     auto* title = new QLabel("欢迎使用123云盘", this);
-    QFont title_font;
-    title_font.setPointSize(18);
-    title_font.setBold(true);
-    title->setFont(title_font);
+    title->setObjectName("loginTitle");
     title->setAlignment(Qt::AlignCenter);
     layout->addWidget(title);
 
@@ -67,7 +65,7 @@ LoginDialog::LoginDialog(QWidget* parent)
     layout->addLayout(h);
 
     connect(_btn_ok, &QPushButton::clicked, this, &LoginDialog::on_ok);
-    connect(_btn_cancel, &QPushButton::clicked, this, &QDialog::close);
+    connect(_btn_cancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(_cbo_accounts, &QComboBox::currentTextChanged,
             this, &LoginDialog::on_account_selected);
 

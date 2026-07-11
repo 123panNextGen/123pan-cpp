@@ -1,10 +1,17 @@
-#include "app/view/main_window.hpp"
 #include "app/common/config.hpp"
 #include "app/common/const.hpp"
 #include "app/common/log.hpp"
+#include "app/qml/Backend.h"
 
 #include <QApplication>
-#include <QStyleFactory>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+
+#ifdef FLUENTUI_BUILD_STATIC_LIB
+#  include <FluentUI.h>
+// Force linker to pull in the auto-generated QML type registration
+extern void qml_register_types_FluentUI();
+#endif
 
 int main(int argc, char* argv[]) {
     // Initialize logging first
@@ -31,16 +38,39 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
 
-    // Apply Fusion style for a modern look
-    app.setStyle(QStyleFactory::create("Fusion"));
+    // Create QML engine
+    QQmlApplicationEngine engine;
 
-    logger->debug("QApplication 初始化完成");
+    // Create and expose backend
+    app::Backend backend(&engine);
+    engine.rootContext()->setContextProperty("backend", &backend);
 
-    // Create and show main window
-    app::MainWindow window;
-    window.show();
+#ifdef FLUENTUI_BUILD_STATIC_LIB
+    // Register FluentUI types (required for static linking)
+    FluentUI::registerTypes(&engine);
+    // Also ensure the auto-generated plugin registration is pulled in
+    volatile auto _fluentui_reg = &qml_register_types_FluentUI;
+    (void)_fluentui_reg;
+#endif
 
-    logger->info("主窗口已显示");
+    logger->debug("QML Engine 初始化完成");
+
+    // Load main QML
+    const QUrl url(QStringLiteral("qrc:/qml/App.qml"));
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated, &app,
+        [url, &logger](QObject* obj, const QUrl& objUrl) {
+            if (!obj && url == objUrl) {
+                logger->critical("无法加载 QML: {}", url.toString().toStdString());
+                QCoreApplication::exit(-1);
+            }
+        },
+        Qt::QueuedConnection
+    );
+
+    engine.load(url);
+
+    logger->info("主窗口已加载");
 
     return app.exec();
 }

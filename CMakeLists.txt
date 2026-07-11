@@ -26,12 +26,30 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ============================================================
 option(BUILD_TESTS "Build unit and integration tests" ON)
 option(BUILD_GUI "Build Qt6 GUI application" ON)
+option(BUILD_FLUENTUI_GUI "Build with FluentUI QML interface" ON)
+
+# ============================================================
+# Release optimization — minimize binary size
+# ============================================================
+if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
+    # Link-time optimization (implies -flto)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    # Function-level sections for linker garbage collection
+    add_compile_options(-ffunction-sections -fdata-sections)
+    if(NOT APPLE)
+        add_link_options(-Wl,--gc-sections)
+    endif()
+endif()
 
 # ============================================================
 # Find packages
 # ============================================================
 if(BUILD_GUI)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+    if(BUILD_FLUENTUI_GUI)
+        find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Quick Qml QuickControls2)
+    else()
+        find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+    endif()
 endif()
 
 # JSON library
@@ -111,35 +129,104 @@ set(RESOURCE_FILES
     src/resource/resource.qrc
 )
 
+# -- QML UI sources (FluentUI) --
+if(BUILD_FLUENTUI_GUI)
+    set(FLUENTUI_QML_SOURCES
+        src/app/qml/App.qml
+        src/app/qml/LoginPage.qml
+        src/app/qml/FilePage.qml
+        src/app/qml/TransferPage.qml
+        src/app/qml/CloudPage.qml
+        src/app/qml/SettingsPage.qml
+    )
+    set(FLUENTUI_CPP_SOURCES
+        src/app/qml/Backend.cpp
+    )
+    set(FLUENTUI_QRC
+        src/resource/qml.qrc
+    )
+
+    # Build FluentUI as static library
+    set(FLUENTUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(FLUENTUI_BUILD_STATIC_LIB ON CACHE BOOL "" FORCE)
+    add_subdirectory(thirdparty/FluentUI)
+endif()
+
 # ============================================================
 # Main executable
 # ============================================================
 if(BUILD_GUI)
-    qt_add_executable(123pan
-        src/main.cpp
-        ${COMMON_SOURCES}
-        ${DATA_SOURCES}
-        ${API_SOURCES}
-        ${SERVICE_SOURCES}
-        ${TASKS_SOURCES}
-        ${VIEW_SOURCES}
-        ${RESOURCE_FILES}
-    )
+    if(BUILD_FLUENTUI_GUI)
+        qt_add_executable(123pan
+            src/main.cpp
+            ${COMMON_SOURCES}
+            ${DATA_SOURCES}
+            ${API_SOURCES}
+            ${SERVICE_SOURCES}
+            ${TASKS_SOURCES}
+            ${FLUENTUI_CPP_SOURCES}
+            ${RESOURCE_FILES}
+            ${FLUENTUI_QRC}
+            ${FLUENTUI_QML_SOURCES}
+        )
+    else()
+        qt_add_executable(123pan
+            src/main.cpp
+            ${COMMON_SOURCES}
+            ${DATA_SOURCES}
+            ${API_SOURCES}
+            ${SERVICE_SOURCES}
+            ${TASKS_SOURCES}
+            ${VIEW_SOURCES}
+            ${RESOURCE_FILES}
+        )
+    endif()
 
     target_include_directories(123pan PRIVATE
         ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_link_libraries(123pan PRIVATE
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Widgets
-        nlohmann_json::nlohmann_json
-        spdlog::spdlog
-        cpr::cpr
-        OpenSSL::SSL
-        OpenSSL::Crypto
-    )
+    if(BUILD_FLUENTUI_GUI)
+        target_link_libraries(123pan PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Widgets
+            Qt6::Quick
+            Qt6::Qml
+            Qt6::QuickControls2
+            fluentui
+            fluentuiplugin
+            nlohmann_json::nlohmann_json
+            spdlog::spdlog
+            cpr::cpr
+            OpenSSL::SSL
+            OpenSSL::Crypto
+        )
+        # Required for FluentUI static linking — enables FluentUI::registerTypes()
+        target_compile_definitions(123pan PRIVATE FLUENTUI_BUILD_STATIC_LIB)
+        target_include_directories(123pan PRIVATE
+            ${CMAKE_SOURCE_DIR}/thirdparty/FluentUI/src
+        )
+
+    # Strip binary in Release builds
+    if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
+        add_custom_command(TARGET 123pan POST_BUILD
+            COMMAND ${CMAKE_STRIP} "$<TARGET_FILE:123pan>"
+            COMMENT "Stripping 123pan binary"
+        )
+    endif()
+    else()
+        target_link_libraries(123pan PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Widgets
+            nlohmann_json::nlohmann_json
+            spdlog::spdlog
+            cpr::cpr
+            OpenSSL::SSL
+            OpenSSL::Crypto
+        )
+    endif()
 
     # Platform-specific settings
     if(WIN32)

@@ -51,12 +51,13 @@ void FileInterface::set_transfer_interface(TransferInterface* transfer) {
 
 void FileInterface::create_top_bar() {
     _breadcrumb_frame = new QFrame(this);
-    _breadcrumb_frame->setObjectName("frame");
+    _breadcrumb_frame->setObjectName("breadcrumbFrame");
     auto* top_layout = new QHBoxLayout(_breadcrumb_frame);
     top_layout->setContentsMargins(12, 10, 12, 10);
     top_layout->setSpacing(8);
 
-    _back_button = new QPushButton("← 返回上一级", _breadcrumb_frame);
+    _back_button = new QPushButton("← 返回上级", _breadcrumb_frame);
+    _back_button->setFlat(true);
     _back_button->setEnabled(false);
     connect(_back_button, &QPushButton::clicked,
             this, &FileInterface::go_parent_dir);
@@ -100,7 +101,7 @@ void FileInterface::create_content() {
 
     // Left: folder tree
     auto* tree_frame = new QFrame(this);
-    tree_frame->setObjectName("frame");
+    tree_frame->setObjectName("contentFrame");
     auto* tree_layout = new QVBoxLayout(tree_frame);
     tree_layout->setContentsMargins(0, 8, 0, 0);
     tree_layout->setSpacing(8);
@@ -116,12 +117,12 @@ void FileInterface::create_content() {
 
     // Storage info card
     auto* storage_card = new QFrame(tree_frame);
+    storage_card->setObjectName("storageCard");
     auto* storage_layout = new QVBoxLayout(storage_card);
     storage_layout->setContentsMargins(12, 8, 12, 8);
 
     auto* storage_top = new QHBoxLayout();
     storage_top->addWidget(new QLabel("☁ 云盘空间", storage_card));
-    _storage_value_label = new QLabel("-- / --", storage_card);
     _storage_value_label->setStyleSheet("font-size: 12px; color: gray;");
     storage_top->addWidget(_storage_value_label);
     storage_top->addStretch();
@@ -140,7 +141,7 @@ void FileInterface::create_content() {
 
     // Right: file table
     auto* list_frame = new QFrame(this);
-    list_frame->setObjectName("frame");
+    list_frame->setObjectName("contentFrame");
     auto* list_layout = new QVBoxLayout(list_frame);
     list_layout->setContentsMargins(0, 8, 0, 0);
 
@@ -363,9 +364,9 @@ QList<QMap<QString, QVariant>> FileInterface::fetch_dir_list(int64_t dir_id) {
     bool old_all = _pan->all_file;
 
     _pan->file_page = 0;
+    QList<QMap<QString, QVariant>> result;
     try {
         auto [code, items] = _pan->get_dir_by_id(dir_id, false, true, 100);
-        QList<QMap<QString, QVariant>> result;
         if (code == 0) {
             for (auto& item_json : items) {
                 QMap<QString, QVariant> map;
@@ -378,13 +379,14 @@ QList<QMap<QString, QVariant>> FileInterface::fetch_dir_list(int64_t dir_id) {
                 result.append(map);
             }
         }
-        return result;
     } catch (...) {
-        return {};
+        // Restore state on error
     }
+
     _pan->file_page = old_page;
     _pan->total = old_total;
     _pan->all_file = old_all;
+    return result;
 }
 
 std::pair<QList<QMap<QString, QVariant>>, QList<QMap<QString, QVariant>>>

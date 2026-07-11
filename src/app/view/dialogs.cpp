@@ -17,10 +17,7 @@ InputDialog::InputDialog(const QString& title, const QString& hint,
     layout->setSpacing(20);
 
     auto* title_label = new QLabel(title, this);
-    QFont title_font;
-    title_font.setPointSize(16);
-    title_font.setBold(true);
-    title_label->setFont(title_font);
+    title_label->setObjectName("titleLabel");
     title_label->setAlignment(Qt::AlignCenter);
     layout->addWidget(title_label);
 

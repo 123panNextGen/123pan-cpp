@@ -142,14 +142,11 @@ TransferInterface::TransferInterface(QWidget* parent)
 
     // Top bar
     auto* top_frame = new QFrame(this);
-    top_frame->setObjectName("frame");
+    top_frame->setObjectName("breadcrumbFrame");
     auto* top_layout = new QHBoxLayout(top_frame);
 
     auto* title_label = new QLabel("传输管理", top_frame);
-    QFont title_font;
-    title_font.setPointSize(14);
-    title_font.setBold(true);
-    title_label->setFont(title_font);
+    title_label->setObjectName("titleLabel");
     top_layout->addWidget(title_label);
 
     _segment_widget = new QComboBox(top_frame);
@@ -282,7 +279,6 @@ void TransferInterface::add_upload_task(const std::string& file_name,
                                  "upload");
                 });
         connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-        _upload_threads.push_back(thread);
         thread->start();
     }
 }
@@ -324,7 +320,6 @@ void TransferInterface::add_download_task(const std::string& file_name,
                                  "download");
                 });
         connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-        _download_threads.push_back(thread);
         thread->start();
     }
 }
