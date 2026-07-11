@@ -69,15 +69,10 @@ if(BUILD_GUI)
     endif()
 endif()
 
-# Completely disable Qt6's automatic deployment support.
-# QT_DEPLOY_AUTO=OFF (above) stops the high-level switch, but
-# qt_standard_project_setup() inside FluentUI may still register
-# internal deployment hooks.  qt_disable_deploy_support() (Qt ≥ 6.7)
-# tears down the entire deployment machinery so no post-build
-# step ever runs the binary.
-if(COMMAND qt_disable_deploy_support)
-    qt_disable_deploy_support()
-endif()
+# qt_disable_deploy_support() is called AFTER add_subdirectory(FluentUI)
+# below, because FluentUI's own CMakeLists.txt calls
+# qt_standard_project_setup() which may re-enable deployment hooks.
+# Doing it last ensures the deployment machinery stays off.
 
 # Also prevent vcpkg from deploying DLLs at build time (z-applocal)
 # in CI where we copy DLLs explicitly in the package step.  On dev
@@ -192,6 +187,14 @@ if(BUILD_FLUENTUI_GUI)
     add_subdirectory(thirdparty/FluentUI)
 endif()
 
+# ── Final deployment safeguard ──────────────────────────────────
+# Called AFTER FluentUI's add_subdirectory so that any
+# qt_standard_project_setup() inside FluentUI cannot re-enable
+# deployment hooks.  This is the last word on deployment.
+if(COMMAND qt_disable_deploy_support)
+    qt_disable_deploy_support()
+endif()
+
 # ============================================================
 # Main executable
 # ============================================================
@@ -257,8 +260,11 @@ if(BUILD_GUI)
             ${CMAKE_SOURCE_DIR}/thirdparty/FluentUI/src
         )
 
-    # Strip binary in Release builds
-    if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
+    # Strip binary in Release builds — only on platforms where a strip
+    # tool is actually available (GCC/Clang).  On MSVC, CMAKE_STRIP is
+    # empty and an empty COMMAND would execute $<TARGET_FILE:123pan> as
+    # a program, causing STATUS_DLL_NOT_FOUND (0xc0000135) in CI.
+    if((CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "MinSizeRel") AND CMAKE_STRIP)
         add_custom_command(TARGET 123pan POST_BUILD
             COMMAND ${CMAKE_STRIP} "$<TARGET_FILE:123pan>"
             COMMENT "Stripping 123pan binary"
