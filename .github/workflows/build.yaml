@@ -223,11 +223,13 @@ jobs:
           QT_QPA_PLATFORM: offscreen
 
       # ==========================================================
-      #  UPX Compression (Windows only; Linux already stripped)
+      #  UPX Compression (Windows x64 only)
+      #  UPX does not support ARM64 PE binaries yet.
+      #  Linux binaries are already stripped by the toolchain.
       # ==========================================================
 
-      - name: Compress with UPX (Windows)
-        if: runner.os == 'Windows'
+      - name: Compress with UPX (Windows x64)
+        if: runner.os == 'Windows' && matrix.artifact == 'windows-x64'
         shell: pwsh
         run: upx --best --lzma build\123pan.exe
 
