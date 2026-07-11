@@ -10,18 +10,22 @@ FluScrollablePage {
         anchors.fill: parent
         FluPivotItem {
             title: "上传"
-            FluTableView {
-                anchors { fill: parent; margins: 8 }
-                columnSource: backend.transferColumns
-                dataSource: backend.uploadDataSource
+            contentItem: Component {
+                FluTableView {
+                    anchors { fill: parent; margins: 8 }
+                    columnSource: backend.transferColumns
+                    dataSource: backend.uploadDataSource
+                }
             }
         }
         FluPivotItem {
             title: "下载"
-            FluTableView {
-                anchors { fill: parent; margins: 8 }
-                columnSource: backend.transferColumns
-                dataSource: backend.downloadDataSource
+            contentItem: Component {
+                FluTableView {
+                    anchors { fill: parent; margins: 8 }
+                    columnSource: backend.transferColumns
+                    dataSource: backend.downloadDataSource
+                }
             }
         }
     }

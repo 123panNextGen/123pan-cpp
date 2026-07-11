@@ -29,21 +29,25 @@ FluWindow {
                 title: "文件"
                 icon: FluentIcons.Document
                 url: "qrc:/qml/FilePage.qml"
+                onTapListener: function() { navView.push("qrc:/qml/FilePage.qml") }
             }
             FluPaneItem {
                 title: "传输"
                 icon: FluentIcons.Sync
                 url: "qrc:/qml/TransferPage.qml"
+                onTapListener: function() { navView.push("qrc:/qml/TransferPage.qml") }
             }
             FluPaneItem {
                 title: "云盘"
                 icon: FluentIcons.Cloud
                 url: "qrc:/qml/CloudPage.qml"
+                onTapListener: function() { navView.push("qrc:/qml/CloudPage.qml") }
             }
             FluPaneItem {
                 title: "设置"
                 icon: FluentIcons.Settings
                 url: "qrc:/qml/SettingsPage.qml"
+                onTapListener: function() { navView.push("qrc:/qml/SettingsPage.qml") }
             }
         }
         footerItems: FluObject {

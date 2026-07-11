@@ -8,7 +8,7 @@ FluScrollablePage {
 
     ColumnLayout {
         spacing: 16
-        anchors { left: parent.left; right: parent.right; margins: 8 }
+        Layout.fillWidth: true
 
         FluGroupBox {
             title: "账户信息"

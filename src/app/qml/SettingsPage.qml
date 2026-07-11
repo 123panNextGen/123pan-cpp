@@ -13,7 +13,7 @@ FluScrollablePage {
 
         ColumnLayout {
             id: settingsColumn
-            anchors { left: parent.left; right: parent.right; margins: 8 }
+            Layout.fillWidth: true
             spacing: 16
 
             FluGroupBox {
