@@ -4,15 +4,13 @@
 
 <a href="https://github.com/123pannextgen/123pan-cpp/stargazers"><img src="https://img.shields.io/github/stars/123pannextgen/123pan-cpp" alt="Stars"></a>
 <a href="https://github.com/123pannextgen/123pan-cpp/issues"><img src="https://img.shields.io/github/issues/123pannextgen/123pan-cpp" alt="Issues"></a>
-<a href="https://github.com/123pannextgen/123pan-cpp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-WTFPL-green" alt="License"></a>
+<a href="https://github.com/123pannextgen/123pan-cpp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 <a href="https://isocpp.org/"><img src="https://img.shields.io/badge/c++-20%2B-blue" alt="c++ Version"></a>
 <a href="https://github.com/123pannextgen/123pan-cpp/releases"><img src="https://img.shields.io/github/v/tag/123pannextgen/123pan-cpp?label=release" alt="latest_release"></a>
 <a href="https://github.com/123pannextgen/123pan-cpp/releases"><img src="https://img.shields.io/github/downloads/123pannextgen/123pan-cpp/total" alt="Downloads"></a>
-<br>
-<img src="./doc/image.png" width="600" alt="Screenshot">
 
->前言
->由于原项目体积和效率都很差，我们团队决定制作一个更高效的版本
+>前言  
+>由于原项目体积和效率都很差，我们团队决定制作一个更高效的版本  
 >但由于团队技术能力问题，本项目**完全由AI编写**
 
 ## 介绍
@@ -180,20 +178,28 @@ cmake --build build -j$(nproc)
 cd build && ctest --output-on-failure
 ```
 ## 协议
-[WTFPL](./LICENSE)
+[MIT](./LICENSE)
 ```
-        DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
-                    Version 2, December 2004 
+MIT License
 
- Copyright (C) 2004 Sam Hocevar <sam@hocevar.net> 
+Copyright (c) 2026 123pan Next Gen Team
 
- Everyone is permitted to copy and distribute verbatim or modified 
- copies of this license document, and changing it is allowed as long 
- as the name is changed. 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
-   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-  0. You just DO WHAT THE FUCK YOU WANT TO.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ```
