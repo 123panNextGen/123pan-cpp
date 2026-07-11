@@ -40,6 +40,16 @@ jobs:
           - os: windows-2025
             artifact: windows-x64
             binary: 123pan.exe
+            msvc_arch: amd64
+            qt_arch: win64_msvc2022_64
+            vcpkg_triplet: x64-windows
+
+          - os: windows-11-vs2026-arm
+            artifact: windows-arm64
+            binary: 123pan.exe
+            msvc_arch: arm64
+            qt_arch: win64_msvc2022_arm64
+            vcpkg_triplet: arm64-windows
 
     steps:
       - uses: actions/checkout@v7
@@ -98,12 +108,18 @@ jobs:
         run: |
           choco install ninja -y
 
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.3
-          arch: win64_msvc2022_64
+          arch: ${{ matrix.qt_arch }}
           cache: true
 
       - name: Setup vcpkg (Windows)
@@ -115,10 +131,10 @@ jobs:
           C:\vcpkg\bootstrap-vcpkg.bat
 
           C:\vcpkg\vcpkg install `
-            cpr:x64-windows `
-            openssl:x64-windows `
-            spdlog:x64-windows `
-            nlohmann-json:x64-windows
+            cpr:${{ matrix.vcpkg_triplet }} `
+            openssl:${{ matrix.vcpkg_triplet }} `
+            spdlog:${{ matrix.vcpkg_triplet }} `
+            nlohmann-json:${{ matrix.vcpkg_triplet }}
 
       ############################################################
       ## Cache
@@ -150,6 +166,8 @@ jobs:
           cmake -B build `
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=cl `
+            -DCMAKE_CXX_COMPILER=cl `
             -DCMAKE_PREFIX_PATH="$env:Qt6_ROOT_DIR" `
             -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
             -DBUILD_GUI=ON `
@@ -238,10 +256,15 @@ jobs:
         with:
           name: 123pan-linux-arm64
 
-      - name: Download Windows
+      - name: Download Windows x64
         uses: actions/download-artifact@v8
         with:
           name: 123pan-windows-x64
+
+      - name: Download Windows arm64
+        uses: actions/download-artifact@v8
+        with:
+          name: 123pan-windows-arm64
 
       - name: Set Version (tag)
         if: github.event_name == 'push'
@@ -273,3 +296,4 @@ jobs:
             123pan-linux-x64.zip
             123pan-linux-arm64.zip
             123pan-windows-x64.zip
+            123pan-windows-arm64.zip

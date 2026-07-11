@@ -40,6 +40,16 @@ find_package(nlohmann_json REQUIRED)
 # Logging library
 find_package(spdlog REQUIRED)
 
+# spdlog compiled-lib detection:
+# When spdlog is built as a compiled (shared/static) library rather than
+# header-only, SPDLOG_COMPILED_LIB must be defined to avoid dllimport
+# mismatches, especially on Windows with vcpkg.
+get_target_property(_spdlog_type spdlog::spdlog TYPE)
+if(_spdlog_type STREQUAL "SHARED_LIBRARY" OR _spdlog_type STREQUAL "STATIC_LIBRARY")
+    add_compile_definitions(SPDLOG_COMPILED_LIB)
+endif()
+unset(_spdlog_type)
+
 # HTTP client
 find_package(cpr REQUIRED)
 
