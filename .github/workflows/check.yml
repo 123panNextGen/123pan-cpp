@@ -48,7 +48,6 @@ jobs:
             libcurl4-openssl-dev \
             cppcheck \
             clang-tidy-18 \
-            qt6-printsupport-dev \
             libx11-dev \
             ccache
       
@@ -143,7 +142,7 @@ jobs:
             qt6-tools-dev qt6-tools-dev-tools \
             nlohmann-json3-dev libspdlog-dev \
             libssl-dev libcurl4-openssl-dev \
-            libgtest-dev ccache qt6-printsupport-dev libx11-dev
+            libgtest-dev ccache libx11-dev
 
       - name: Install cpr
         run: |
@@ -194,7 +193,7 @@ jobs:
             build-essential cmake ninja-build \
             nlohmann-json3-dev libspdlog-dev \
             libssl-dev libcurl4-openssl-dev\
-            libgtest-dev qt6-printsupport-dev libx11-dev
+            libgtest-dev libx11-dev
 
       - name: Install cpr
         run: |
