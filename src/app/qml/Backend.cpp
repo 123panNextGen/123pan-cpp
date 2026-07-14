@@ -8,10 +8,12 @@
 #include <QUrl>
 #include <QClipboard>
 #include <QApplication>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QStandardPaths>
 
 namespace app {
 
@@ -101,6 +103,14 @@ QStringList Backend::logLevels() const { QStringList r; for(auto& l:get_level_na
 int Backend::logLevelIndex() const { auto ls=get_level_names(); auto c=get_current_level_name(); for(size_t i=0;i<ls.size();++i)if(ls[i]==c)return(int)i; return 0; }
 void Backend::setLogLevelIndex(int idx) { auto ls=get_level_names(); if(idx>=0&&idx<(int)ls.size()){ set_log_level(ls[idx]); ConfigManager::set_setting("logLevel",ls[idx]); emit logLevelIndexChanged(); } }
 void Backend::openLogFile() { app::open_log_file(); }
+void Backend::pickDownloadPath() {
+    QString dir = QFileDialog::getExistingDirectory(
+        nullptr, "选择下载目录",
+        downloadPath().isEmpty()
+            ? QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
+            : downloadPath());
+    if (!dir.isEmpty()) setDownloadPath(dir);
+}
 QString Backend::appVersion() const { return QString::fromUtf8(VERSION); }
 void Backend::openProjectPage() { QDesktopServices::openUrl(QUrl(QString::fromUtf8(ABOUT_URL))); }
 void Backend::checkUpdate() { app::check_version(); }
@@ -148,7 +158,7 @@ void Backend::refreshFileList() {
         row["name"]=QString::fromStdString(name);
         row["typeName"]=type==1?"📁 文件夹":QString::fromStdString(get_file_type_name(type));
         row["size"]=QString::fromStdString(format_file_size(sz));
-        row["type"]=type; row["fileId"]=(qint64)fid;
+        row["type"]=type; row["fileId"]=QString::number(fid);
         if(type==1)tree.append(row);
         table.append(row);
     }
@@ -204,16 +214,60 @@ void Backend::fileRenameItem(qint64 fileId, const QString& newName) {
 }
 
 void Backend::fileDownloadItem(qint64 fileId) {
-    if(!_pan)return;
-    for(auto& item:_pan->list){
-        int64_t fid=item.value("FileId",item.value("fileId",0));
-        if(fid!=fileId)continue;
-        std::string name=item.value("FileName",item.value("fileName",""));
-        int64_t sz=item.value("Size",item.value("size",0));
-        QVariantMap t; t["name"]=QString::fromStdString(name);
-        t["size"]=QString::fromStdString(format_file_size(sz));
-        t["progress"]="0%"; t["status"]="已添加";
-        _downloadData.append(t); emit transferChanged();
+    if (!_pan) return;
+
+    for (auto& item : _pan->list) {
+        int64_t fid = item.value("FileId", item.value("fileId", 0));
+        if (fid != fileId) continue;
+
+        std::string name = item.value("FileName", item.value("fileName", ""));
+        int64_t sz = item.value("Size", item.value("size", 0));
+
+        // Get download URL
+        std::string url = _pan->link_by_fileDetail(item, true);
+        if (url.empty() || url[0] == '-') {
+            get_logger("backend")->error("获取下载链接失败: {}", url);
+            return;
+        }
+
+        // Determine download path
+        std::string dlPath = downloadPath().toStdString();
+        if (dlPath.empty())
+            dlPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation).toStdString();
+
+        std::filesystem::path filePath = std::filesystem::path(dlPath) / name;
+
+        QVariantMap t;
+        t["name"] = QString::fromStdString(name);
+        t["size"] = QString::fromStdString(format_file_size(sz));
+        t["progress"] = "0%";
+        t["status"] = "下载中";
+        _downloadData.append(t);
+
+        int idx = _downloadData.size() - 1;
+        emit transferChanged();
+
+        // Start download
+        bool ok = _pan->download_file(
+            url, filePath, sz,
+            [this, idx, sz](int64_t downloaded, int64_t total) {
+                if (idx >= 0 && idx < _downloadData.size()) {
+                    QVariantMap m = _downloadData[idx].toMap();
+                    int pct = (total > 0) ? (int)(downloaded * 100 / total) : 0;
+                    m["progress"] = QString("%1%").arg(pct);
+                    m["status"] = (pct >= 100) ? "已完成" : "下载中";
+                    _downloadData[idx] = m;
+                    emit transferChanged();
+                }
+            });
+
+        if (idx >= 0 && idx < _downloadData.size()) {
+            QVariantMap m = _downloadData[idx].toMap();
+            m["status"] = ok ? "已完成" : "下载失败";
+            m["progress"] = ok ? "100%" : m["progress"].toString();
+            _downloadData[idx] = m;
+        }
+        emit transferChanged();
         return;
     }
 }
@@ -239,20 +293,58 @@ void Backend::fileCopyLink(qint64 fileId) {
 }
 
 void Backend::fileUploadItem() {
-    // Open native file dialog — placeholder for now
+    if (!_pan) return;
+
+    QStringList files = QFileDialog::getOpenFileNames(
+        nullptr, "选择要上传的文件",
+        QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+
+    if (files.isEmpty()) return;
+
+    for (const QString& fp : files) {
+        QFileInfo fi(fp);
+        qint64 sz = fi.size();
+
+        QVariantMap t;
+        t["name"] = fi.fileName();
+        t["size"] = QString::fromStdString(format_file_size(sz));
+        t["progress"] = "0%";
+        t["status"] = "等待中";
+        t["filePath"] = fp;
+        _uploadData.append(t);
+
+        int idx = _uploadData.size() - 1;
+
+        // Start upload in background (同步调用，后续可以改为异步)
+        std::string result = _pan->up_load(
+            fp.toStdString(),
+            [this, idx](int percent) {
+                if (idx >= 0 && idx < _uploadData.size()) {
+                    QVariantMap m = _uploadData[idx].toMap();
+                    m["progress"] = QString("%1%").arg(percent);
+                    if (percent >= 100)
+                        m["status"] = "已完成";
+                    else
+                        m["status"] = "上传中";
+                    _uploadData[idx] = m;
+                    emit transferChanged();
+                }
+            });
+
+        if (result.empty() || result == "已取消") {
+            QVariantMap m = _uploadData[idx].toMap();
+            m["status"] = result == "已取消" ? "已取消" : "上传失败";
+            _uploadData[idx] = m;
+        } else {
+            QVariantMap m = _uploadData[idx].toMap();
+            m["status"] = "已完成";
+            m["progress"] = "100%";
+            _uploadData[idx] = m;
+        }
+        emit transferChanged();
+    }
 }
 
-QString Backend::fileTableJson() const {
-    QJsonArray arr;
-    for (auto& v : _fileTableData) {
-        QJsonObject obj;
-        QVariantMap m = v.toMap();
-        for (auto it = m.begin(); it != m.end(); ++it)
-            obj[it.key()] = QJsonValue::fromVariant(it.value());
-        arr.append(obj);
-    }
-    return QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact));
-}
 
 // ========== Transfer ==========
 void Backend::addUploadTask(const QString& filePath, qint64 targetDirId) {
@@ -264,5 +356,3 @@ void Backend::removeUploadTask(int index) { if(index>=0&&index<_uploadData.size(
 void Backend::removeDownloadTask(int index) { if(index>=0&&index<_downloadData.size()){ _downloadData.removeAt(index); emit transferChanged(); } }
 
 } // namespace app
-
-#include "Backend.moc"

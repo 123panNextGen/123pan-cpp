@@ -12,7 +12,7 @@ FluScrollablePage {
 
         FluGroupBox { title: "下载设置"; Layout.fillWidth: true
             ColumnLayout { spacing: 8
-                FluButton { text: "下载目录: " + (backend.downloadPath||"未设置"); Layout.fillWidth: true }
+                FluButton { text: "下载目录: " + (backend.downloadPath||"未设置"); Layout.fillWidth: true; onClicked: backend.pickDownloadPath() }
                 FluToggleSwitch { text: "每次询问"; checked: backend.askDownloadLocation; onCheckedChanged: backend.askDownloadLocation=checked }
                 FluToggleSwitch { text: "多线程下载"; checked: backend.multiThreadDownload; onCheckedChanged: backend.multiThreadDownload=checked }
                 RowLayout { FluText { text: "下载限速 KB/s"; Layout.fillWidth: true }

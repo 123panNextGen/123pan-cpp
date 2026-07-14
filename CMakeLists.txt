@@ -163,6 +163,7 @@ if(BUILD_FLUENTUI_GUI)
     set(FLUENTUI_QML_SOURCES
         src/app/qml/App.qml
         src/app/qml/LoginPage.qml
+        src/app/qml/LoginWindow.qml
         src/app/qml/FilePage.qml
         src/app/qml/TransferPage.qml
         src/app/qml/CloudPage.qml

@@ -10,8 +10,8 @@
 #include <fstream>
 #include <thread>
 
-// OpenSSL MD5
-#include <openssl/md5.h>
+// OpenSSL EVP (replaces deprecated MD5 low-level API)
+#include <openssl/evp.h>
 
 namespace app {
 
@@ -29,11 +29,18 @@ void UploadService::set_upload_speed_limit(int kbps) {
 }
 
 std::string UploadService::compute_file_md5(const std::string& file_path) {
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
+    auto ctx = EVP_MD_CTX_new();
+    if (!ctx) throw std::runtime_error("EVP_MD_CTX_new failed");
+    if (!EVP_DigestInit_ex(ctx, EVP_md5(), nullptr)) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("EVP_DigestInit_ex failed");
+    }
 
     std::ifstream f(file_path, std::ios::binary);
-    if (!f) throw std::runtime_error("Cannot open file for MD5: " + file_path);
+    if (!f) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Cannot open file for MD5: " + file_path);
+    }
 
     constexpr size_t BUF_SIZE = 64 * 1024;
     std::vector<uint8_t> buf(BUF_SIZE);
@@ -42,16 +49,19 @@ std::string UploadService::compute_file_md5(const std::string& file_path) {
         f.read(reinterpret_cast<char*>(buf.data()), BUF_SIZE);
         auto bytes = f.gcount();
         if (bytes > 0) {
-            MD5_Update(&ctx, buf.data(), bytes);
+            EVP_DigestUpdate(ctx, buf.data(), bytes);
         }
     }
 
-    std::vector<uint8_t> hash(MD5_DIGEST_LENGTH);
-    MD5_Final(hash.data(), &ctx);
+    std::vector<uint8_t> hash(EVP_MAX_MD_SIZE);
+    unsigned int hash_len = 0;
+    EVP_DigestFinal_ex(ctx, hash.data(), &hash_len);
+    EVP_MD_CTX_free(ctx);
+    hash.resize(hash_len);
 
     // Convert to hex
     std::string result;
-    result.reserve(MD5_DIGEST_LENGTH * 2);
+    result.reserve(hash.size() * 2);
     for (auto b : hash) {
         constexpr char hex[] = "0123456789abcdef";
         result.push_back(hex[b >> 4]);

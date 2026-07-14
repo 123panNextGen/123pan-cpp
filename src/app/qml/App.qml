@@ -61,10 +61,28 @@ FluWindow {
         }
     }
 
-    FluLoader {
-        id: loginLoader
-        anchors.fill: parent
-        z: 10
+    // ── Login window (separate window, not an overlay) ──────
+    property var loginWindow: null
+
+    function showLoginWindow() {
+        if (loginWindow) {
+            loginWindow.show()
+            loginWindow.raise()
+            return
+        }
+        var comp = Qt.createComponent("qrc:/qml/LoginWindow.qml")
+        if (comp.status === Component.Ready) {
+            loginWindow = comp.createObject(null)
+            loginWindow.show()
+        }
+    }
+
+    function closeLoginWindow() {
+        if (loginWindow) {
+            loginWindow.close()
+            loginWindow.destroy()
+            loginWindow = null
+        }
     }
 
     Component.onCompleted: {
@@ -73,8 +91,10 @@ FluWindow {
         FluTheme.nativeText = true
         FluTheme.animationEnabled = true
         backend.init()
-        if (!backend.isLoggedIn) {
-            loginLoader.source = "qrc:/qml/LoginPage.qml"
+        if (backend.isLoggedIn) {
+            initTimer.start()
+        } else {
+            showLoginWindow()
         }
     }
 
@@ -82,7 +102,7 @@ FluWindow {
     Timer {
         id: initTimer
         interval: 100
-        running: true
+        running: false
         repeat: false
         onTriggered: {
             navView.push("qrc:/qml/FilePage.qml")
@@ -93,10 +113,16 @@ FluWindow {
     Connections {
         target: backend
         function onLoginSuccess() {
-            loginLoader.source = ""
+            closeLoginWindow()
+            mainWindow.show()
+            mainWindow.raise()
+            initTimer.start()
         }
         function onLogoutRequested() {
-            loginLoader.source = "qrc:/qml/LoginPage.qml"
+            // Clear navigation back to empty before showing login
+            while (navView.depth > 0) navView.pop()
+            showLoginWindow()
+            mainWindow.hide()
         }
     }
 }

@@ -2,6 +2,7 @@
     <qresource prefix="/qml">
         <file alias="App.qml">../app/qml/App.qml</file>
         <file alias="LoginPage.qml">../app/qml/LoginPage.qml</file>
+        <file alias="LoginWindow.qml">../app/qml/LoginWindow.qml</file>
         <file alias="FilePage.qml">../app/qml/FilePage.qml</file>
         <file alias="TransferPage.qml">../app/qml/TransferPage.qml</file>
         <file alias="CloudPage.qml">../app/qml/CloudPage.qml</file>

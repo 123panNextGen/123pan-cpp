@@ -8,11 +8,6 @@ Item {
     property var selId: 0
     property var selName: ""
     property var selType: 0
-    property var fileListModel: []
-
-    function refreshModel() { fileListModel = JSON.parse(backend.fileTableJson()) }
-    Component.onCompleted: refreshModel()
-    Connections { target: backend; function onFileListChanged() { refreshModel() } }
 
     ColumnLayout {
         anchors.fill: parent
@@ -34,7 +29,7 @@ Item {
 
         // Storage bar
         RowLayout {
-            FluText { text: "☁ 已用 " + backend.storageUsed + " / 共 " + backend.storageTotal + "  文件: " + fileListModel.length; font: FluTextStyle.Caption }
+            FluText { text: "☁ 已用 " + backend.storageUsed + " / 共 " + backend.storageTotal + "  文件: " + backend.fileTableDataSource.length; font: FluTextStyle.Caption }
             FluProgressBar { Layout.fillWidth: true; Layout.preferredHeight: 6; value: backend.storagePercent }
         }
 
@@ -55,7 +50,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: fileListModel
+            model: backend.fileTableDataSource
             ScrollBar.vertical: FluScrollBar {}
 
             delegate: Rectangle {

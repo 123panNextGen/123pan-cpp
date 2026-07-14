@@ -62,6 +62,7 @@ public:
     int proxyPort() const; void setProxyPort(int v);
     QStringList logLevels() const; int logLevelIndex() const; void setLogLevelIndex(int idx);
     Q_INVOKABLE void openLogFile();
+    Q_INVOKABLE void pickDownloadPath();
     QString appVersion() const;
     Q_INVOKABLE void openProjectPage(); Q_INVOKABLE void checkUpdate();
 
@@ -85,8 +86,6 @@ public:
     Q_INVOKABLE void fileShareItem(qint64 fileId);
     Q_INVOKABLE void fileCopyLink(qint64 fileId);
     Q_INVOKABLE void fileUploadItem();
-    // Debug: returns JSON string for file data
-    Q_INVOKABLE QString fileTableJson() const;
 
     // Transfer
     QVariantList uploadDataSource() const { return _uploadData; }
