@@ -234,10 +234,20 @@ jobs:
           chmod +x deploy/123pan
 
           # ── Copy all non-system shared libraries ──────────────
+          # NEVER bundle glibc, libstdc++, libgcc_s or other core
+          # system libraries — they are tightly coupled to the host
+          # kernel/libc and will cause symbol lookup errors (e.g.
+          # "undefined symbol: __nptl_change_stack_perm").
           mkdir -p deploy/lib
           ldd build/123pan | grep '=> /' | awk '{print $3}' | while read -r lib; do
             case "$lib" in
+              # ── dynamic linker & vDSO ──────────────────────
               /lib/ld-linux-*|linux-vdso.so*) continue ;;
+              # ── glibc core (MUST come from host system) ────
+              */libc.so.6|*/libm.so.6|*/libpthread.so.0|*/libdl.so.2) continue ;;
+              */librt.so.1|*/libresolv.so.2|*/libnss_*.so.2|*/libutil.so.1) continue ;;
+              # ── GCC runtime (host system provides these) ───
+              */libstdc++.so.6|*/libgcc_s.so.1) continue ;;
             esac
             cp -v "$lib" deploy/lib/ 2>/dev/null || true
           done
@@ -251,7 +261,7 @@ jobs:
             cp -r "$QT_PLUGINS_DIR/iconengines" deploy/lib/qt6/plugins/ 2>/dev/null || true
           fi
 
-          # ── Copy QML modules ─────────────────────────────────
+          # ── Copy Qt QML modules ─────────────────────────────
           QT_QML_DIR=$(find /usr/lib -type d -path '*/qt6/qml' 2>/dev/null | head -1)
           if [ -n "$QT_QML_DIR" ]; then
             mkdir -p deploy/lib/qt6/qml
@@ -263,6 +273,19 @@ jobs:
                 cp -r "$QT_QML_DIR/$mod" deploy/lib/qt6/qml/
               fi
             done
+          fi
+
+          # ── Copy FluentUI QML plugin (qmldir + plugins.qmltypes) ──
+          # FluentUI is statically linked, but its qmldir &
+          # plugins.qmltypes are generated in the build tree and
+          # must be available in the QML import path at runtime.
+          FLUENTUI_PLUGIN_DIR="build/thirdparty/FluentUI/src/FluentUI"
+          if [ -d "$FLUENTUI_PLUGIN_DIR" ]; then
+            mkdir -p deploy/lib/qt6/qml/FluentUI
+            cp -r "$FLUENTUI_PLUGIN_DIR/"* deploy/lib/qt6/qml/FluentUI/
+            echo "Copied FluentUI QML plugin files"
+          else
+            echo "WARNING: FluentUI plugin dir not found at $FLUENTUI_PLUGIN_DIR"
           fi
 
           # ── Set RPATH so binary finds libs in ./lib/ ─────────
